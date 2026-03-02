@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ida Lurie</title>
+  <meta name="description" content="Portfolio and projects by Ida Lurie — builder, designer, creator.">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="index.html" class="site-nav__link" aria-current="page">Home</a></li>
+          <li class="site-nav__item"><a href="about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="projects.html" class="site-nav__link">Projects</a></li>
+          <li class="site-nav__item"><a href="photography.html" class="site-nav__link">Photography</a></li>
+          <li class="site-nav__item"><a href="games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1 class="hero__name">Id<a href="games/secret.html" class="hero__secret-link" aria-label="a">a</a> Lurie</h1>
+        <p class="hero__subtitle">Builder. Designer. Creator.</p>
+        <p class="hero__intro">
+          Hi, I'm Ida. I'm 12 years old and I love building things — websites, games, and anything I can dream up. This is where I share what I'm working on.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="section__title section__title--center">Featured Projects</h2>
+        <div class="card-grid card-grid--3">
+
+          <article class="card">
+            <h3 class="card__title">Pixel Art Maker</h3>
+            <p class="card__description">A browser-based tool for creating pixel art, one square at a time.</p>
+            <a href="projects.html" class="card__link">View Project &rarr;</a>
+          </article>
+
+          <article class="card">
+            <h3 class="card__title">Story Generator</h3>
+            <p class="card__description">Type a word and get a randomly generated short story built around it.</p>
+            <a href="projects.html" class="card__link">View Project &rarr;</a>
+          </article>
+
+          <article class="card">
+            <h3 class="card__title">Color Palette Tool</h3>
+            <p class="card__description">Generate beautiful color combinations for your next creative project.</p>
+            <a href="projects.html" class="card__link">View Project &rarr;</a>
+          </article>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="assets/script.js" defer></script>
+</body>
+</html>
