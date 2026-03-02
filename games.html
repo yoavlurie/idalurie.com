@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Games — Ida Lurie</title>
-  <meta name="description" content="Small experimental web games built by Ida Lurie.">
+  <meta name="description" content="Browser-based interactive games and tools built by Ida Lurie.">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -19,8 +19,6 @@
         <ul class="site-nav__list">
           <li class="site-nav__item"><a href="index.html" class="site-nav__link">Home</a></li>
           <li class="site-nav__item"><a href="about.html" class="site-nav__link">About</a></li>
-          <li class="site-nav__item"><a href="projects.html" class="site-nav__link">Projects</a></li>
-          <li class="site-nav__item"><a href="photography.html" class="site-nav__link">Photography</a></li>
           <li class="site-nav__item"><a href="games.html" class="site-nav__link" aria-current="page">Games</a></li>
         </ul>
       </nav>
@@ -36,20 +34,37 @@
       <section class="section">
         <div class="games-intro">
           <p>
-            I like building small, experimental web games. Nothing too serious — just ideas I want to try out. Here's one you can play right now.
+            These are browser-based interactive experiments I've built. Everything runs right here in your browser — no downloads, no installs. Just click and play.
           </p>
         </div>
 
-        <div class="games-demo">
-          <h2 class="games-demo__title">Click Chase</h2>
-          <p class="games-demo__instructions">Click the circle before it moves. How fast can you go?</p>
-          <div class="games-demo__area" role="application" aria-label="Click Chase game area">
-            <span class="games-demo__score" aria-live="polite">Score: 0</span>
-            <div class="games-demo__target" role="button" tabindex="0" aria-label="Click target"></div>
-          </div>
-        </div>
+        <div class="card-grid card-grid--2">
 
-        <p class="games-hint">Some games aren't listed here. You might have to look a little closer to find them.</p>
+          <article class="card">
+            <h2 class="card__title">Pixel Art Maker</h2>
+            <p class="card__description">Create pixel art in your browser. Pick colors, choose a grid size, and export your art as a PNG.</p>
+            <a href="games/pixel-art.html" class="btn">Play</a>
+          </article>
+
+          <article class="card">
+            <h2 class="card__title">Story Generator</h2>
+            <p class="card__description">Press a button and get a randomly generated short story. Every one is different.</p>
+            <a href="games/story-generator.html" class="btn">Play</a>
+          </article>
+
+          <article class="card">
+            <h2 class="card__title">Color Palette Tool</h2>
+            <p class="card__description">Generate harmonious color palettes. Click any swatch to copy its hex code to your clipboard.</p>
+            <a href="games/color-palette.html" class="btn">Play</a>
+          </article>
+
+          <article class="card">
+            <h2 class="card__title">Typing Speed Test</h2>
+            <p class="card__description">Race against a 30-second timer to see how fast and accurately you can type.</p>
+            <a href="games/typing-test.html" class="btn">Play</a>
+          </article>
+
+        </div>
       </section>
     </div>
   </main>

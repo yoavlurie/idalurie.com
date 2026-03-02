@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Typing Speed Test — Ida Lurie</title>
+  <meta name="description" content="Test your typing speed and accuracy in 30 seconds.">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Typing Speed Test</h1>
+      <p class="game-page__description">Start typing in the box below to begin the 30-second countdown. Type as fast and accurately as you can.</p>
+
+      <div class="typing-stats" id="stats">
+        <div class="typing-stat">
+          <span class="typing-stat__value" id="timer">30</span>
+          <span class="typing-stat__label">seconds</span>
+        </div>
+        <div class="typing-stat">
+          <span class="typing-stat__value" id="wpm">0</span>
+          <span class="typing-stat__label">WPM</span>
+        </div>
+        <div class="typing-stat">
+          <span class="typing-stat__value" id="accuracy">100%</span>
+          <span class="typing-stat__label">accuracy</span>
+        </div>
+      </div>
+
+      <div class="typing-display" id="display" aria-label="Text to type"></div>
+
+      <textarea class="typing-input" id="input" rows="3" placeholder="Start typing here..." aria-label="Type the text shown above"></textarea>
+
+      <div id="results" style="display: none;"></div>
+
+      <div class="text-center mb-2">
+        <button class="btn" id="restart-btn" type="button">Restart</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var paragraphs = [
+        "The ocean covers more than seventy percent of our planet. Deep beneath the waves, strange creatures glow in the dark. Scientists estimate we have explored less than five percent of the ocean floor. Every expedition reveals something new and unexpected.",
+        "Before computers existed, people built mechanical calculators using gears and levers. The earliest ones could only add and subtract. Over time, inventors figured out how to make machines multiply and divide. Today a single phone has more computing power than early space missions used.",
+        "Trees communicate with each other through underground networks of fungi. They share nutrients, send warnings about insects, and even help young seedlings grow. Scientists call this the wood wide web. A single tree can be connected to hundreds of others.",
+        "Light from the sun takes about eight minutes to reach Earth. When you look at a star at night, you are seeing light that traveled for thousands of years. Some of the stars you see might not even exist anymore. Looking at the sky is like looking back in time.",
+        "The first video game was created in a physics lab in the late nineteen fifties. It was a simple tennis game on an oscilloscope screen. Today games are built by hundreds of people and played by billions around the world. What started as an experiment became a global industry.",
+        "Honeybees can communicate the location of flowers by performing a special dance. The direction and speed of the dance tells other bees exactly where to fly. A single hive can visit millions of flowers in a day. Without bees, many of the foods we eat would not exist.",
+        "The human brain contains roughly eighty six billion neurons. Each neuron can connect to thousands of others, forming trillions of pathways. Scientists are still working to understand how thoughts and memories are formed. The brain remains one of the biggest unsolved puzzles in science."
+      ];
+
+      var display = document.getElementById("display");
+      var input = document.getElementById("input");
+      var timerEl = document.getElementById("timer");
+      var wpmEl = document.getElementById("wpm");
+      var accuracyEl = document.getElementById("accuracy");
+      var resultsEl = document.getElementById("results");
+      var restartBtn = document.getElementById("restart-btn");
+
+      var targetText = "";
+      var charSpans = [];
+      var timerInterval = null;
+      var timeLeft = 30;
+      var started = false;
+      var finished = false;
+
+      function pickParagraph() {
+        return paragraphs[Math.floor(Math.random() * paragraphs.length)];
+      }
+
+      function setupDisplay(text) {
+        display.innerHTML = "";
+        charSpans = [];
+        for (var i = 0; i < text.length; i++) {
+          var span = document.createElement("span");
+          span.textContent = text[i];
+          span.className = "char--pending";
+          display.appendChild(span);
+          charSpans.push(span);
+        }
+        /* Mark the first character as current */
+        if (charSpans.length > 0) {
+          charSpans[0].className = "char--current";
+        }
+      }
+
+      function updateDisplay() {
+        var typed = input.value;
+        var correct = 0;
+        var incorrect = 0;
+
+        for (var i = 0; i < charSpans.length; i++) {
+          if (i < typed.length) {
+            if (typed[i] === targetText[i]) {
+              charSpans[i].className = "char--correct";
+              correct++;
+            } else {
+              charSpans[i].className = "char--incorrect";
+              incorrect++;
+            }
+          } else if (i === typed.length) {
+            charSpans[i].className = "char--current";
+          } else {
+            charSpans[i].className = "char--pending";
+          }
+        }
+
+        /* Live WPM: (correct chars / 5) / elapsed minutes */
+        var elapsed = (30 - timeLeft) || 1;
+        var minutes = elapsed / 60;
+        var wpm = Math.round((correct / 5) / minutes);
+        wpmEl.textContent = isFinite(wpm) ? wpm : 0;
+
+        /* Live accuracy */
+        var total = correct + incorrect;
+        var acc = total > 0 ? Math.round((correct / total) * 100) : 100;
+        accuracyEl.textContent = acc + "%";
+      }
+
+      function startTimer() {
+        started = true;
+        timerInterval = setInterval(function () {
+          timeLeft--;
+          timerEl.textContent = timeLeft;
+
+          if (timeLeft <= 0) {
+            endGame();
+          }
+        }, 1000);
+      }
+
+      function endGame() {
+        clearInterval(timerInterval);
+        finished = true;
+        input.disabled = true;
+
+        var typed = input.value;
+        var correct = 0;
+        for (var i = 0; i < typed.length; i++) {
+          if (typed[i] === targetText[i]) correct++;
+        }
+
+        var minutes = 30 / 60;
+        var finalWpm = Math.round((correct / 5) / minutes);
+        var finalAcc = typed.length > 0 ? Math.round((correct / typed.length) * 100) : 0;
+
+        wpmEl.textContent = finalWpm;
+        accuracyEl.textContent = finalAcc + "%";
+
+        resultsEl.style.display = "block";
+        resultsEl.innerHTML =
+          '<div class="typing-results">' +
+          "<p><strong>" + finalWpm + " WPM</strong> at <strong>" + finalAcc + "% accuracy</strong></p>" +
+          "<p style=\"color: var(--color-text-muted); margin-top: 0.5rem;\">You typed " + typed.length + " characters in 30 seconds.</p>" +
+          "</div>";
+      }
+
+      function reset() {
+        clearInterval(timerInterval);
+        started = false;
+        finished = false;
+        timeLeft = 30;
+        timerEl.textContent = "30";
+        wpmEl.textContent = "0";
+        accuracyEl.textContent = "100%";
+        input.value = "";
+        input.disabled = false;
+        resultsEl.style.display = "none";
+        resultsEl.innerHTML = "";
+        targetText = pickParagraph();
+        setupDisplay(targetText);
+        input.focus();
+      }
+
+      input.addEventListener("input", function () {
+        if (finished) return;
+        if (!started) startTimer();
+        updateDisplay();
+      });
+
+      /* Prevent pasting */
+      input.addEventListener("paste", function (e) {
+        e.preventDefault();
+      });
+
+      restartBtn.addEventListener("click", reset);
+
+      /* Initialize */
+      targetText = pickParagraph();
+      setupDisplay(targetText);
+    })();
+  </script>
+</body>
+</html>

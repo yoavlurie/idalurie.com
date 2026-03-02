@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Art Maker — Ida Lurie</title>
+  <meta name="description" content="Create pixel art in your browser.">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Pixel Art Maker</h1>
+      <p class="game-page__description">Pick a color, choose your grid size, and click to paint. Toggle the eraser to remove pixels. When you're done, export your art as a PNG.</p>
+
+      <div class="toolbar" role="toolbar" aria-label="Drawing tools">
+        <div class="toolbar__group">
+          <label for="grid-size">Grid:</label>
+          <select id="grid-size">
+            <option value="8">8 &times; 8</option>
+            <option value="16" selected>16 &times; 16</option>
+            <option value="32">32 &times; 32</option>
+          </select>
+        </div>
+
+        <div class="toolbar__group">
+          <label for="color-picker">Color:</label>
+          <input type="color" id="color-picker" value="#3b5fc0">
+        </div>
+
+        <button class="toolbar__toggle" id="eraser-btn" type="button" aria-pressed="false">Eraser</button>
+        <button class="btn btn--secondary btn--small" id="clear-btn" type="button">Clear</button>
+        <button class="btn btn--small" id="export-btn" type="button">Export PNG</button>
+      </div>
+
+      <div class="game-area">
+        <div class="pixel-grid-wrap">
+          <div class="pixel-grid" id="pixel-grid" role="grid" aria-label="Pixel art canvas"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var grid = document.getElementById("pixel-grid");
+      var sizeSelect = document.getElementById("grid-size");
+      var colorPicker = document.getElementById("color-picker");
+      var eraserBtn = document.getElementById("eraser-btn");
+      var clearBtn = document.getElementById("clear-btn");
+      var exportBtn = document.getElementById("export-btn");
+
+      var gridSize = 16;
+      var isErasing = false;
+      var isPainting = false;
+
+      /* Build the grid */
+      function buildGrid(size) {
+        gridSize = size;
+        grid.innerHTML = "";
+        grid.style.gridTemplateColumns = "repeat(" + size + ", 1fr)";
+        grid.style.width = Math.min(size * 24, 480) + "px";
+
+        for (var i = 0; i < size * size; i++) {
+          var cell = document.createElement("div");
+          cell.className = "pixel-cell";
+          cell.dataset.index = i;
+          grid.appendChild(cell);
+        }
+      }
+
+      /* Paint a single cell */
+      function paintCell(cell) {
+        if (isErasing) {
+          cell.style.backgroundColor = "";
+        } else {
+          cell.style.backgroundColor = colorPicker.value;
+        }
+      }
+
+      /* Grid events — supports click and click-drag */
+      grid.addEventListener("pointerdown", function (e) {
+        if (e.target.classList.contains("pixel-cell")) {
+          isPainting = true;
+          paintCell(e.target);
+          e.preventDefault();
+        }
+      });
+
+      grid.addEventListener("pointerover", function (e) {
+        if (isPainting && e.target.classList.contains("pixel-cell")) {
+          paintCell(e.target);
+        }
+      });
+
+      document.addEventListener("pointerup", function () {
+        isPainting = false;
+      });
+
+      /* Grid size change */
+      sizeSelect.addEventListener("change", function () {
+        buildGrid(parseInt(sizeSelect.value, 10));
+      });
+
+      /* Eraser toggle */
+      eraserBtn.addEventListener("click", function () {
+        isErasing = !isErasing;
+        eraserBtn.classList.toggle("is-active", isErasing);
+        eraserBtn.setAttribute("aria-pressed", String(isErasing));
+      });
+
+      /* Clear canvas */
+      clearBtn.addEventListener("click", function () {
+        var cells = grid.querySelectorAll(".pixel-cell");
+        for (var i = 0; i < cells.length; i++) {
+          cells[i].style.backgroundColor = "";
+        }
+      });
+
+      /* Export as PNG */
+      exportBtn.addEventListener("click", function () {
+        var canvas = document.createElement("canvas");
+        var px = Math.floor(512 / gridSize);
+        canvas.width = px * gridSize;
+        canvas.height = px * gridSize;
+        var ctx = canvas.getContext("2d");
+
+        /* Fill with white background */
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        var cells = grid.querySelectorAll(".pixel-cell");
+        for (var i = 0; i < cells.length; i++) {
+          var bg = cells[i].style.backgroundColor;
+          if (bg) {
+            var row = Math.floor(i / gridSize);
+            var col = i % gridSize;
+            ctx.fillStyle = bg;
+            ctx.fillRect(col * px, row * px, px, px);
+          }
+        }
+
+        var link = document.createElement("a");
+        link.download = "pixel-art.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      });
+
+      /* Initialize */
+      buildGrid(gridSize);
+    })();
+  </script>
+</body>
+</html>

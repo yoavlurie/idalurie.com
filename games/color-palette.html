@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Color Palette Tool — Ida Lurie</title>
+  <meta name="description" content="Generate harmonious color palettes with one click.">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Color Palette Tool</h1>
+      <p class="game-page__description">Generate 5 harmonious colors. Click any swatch or hex code to copy it to your clipboard.</p>
+
+      <div class="palette-copied" id="copy-msg" aria-live="polite"></div>
+
+      <div class="palette-display" id="palette"></div>
+
+      <div class="text-center">
+        <button class="btn" id="generate-btn" type="button">Generate New Palette</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var paletteEl = document.getElementById("palette");
+      var generateBtn = document.getElementById("generate-btn");
+      var copyMsg = document.getElementById("copy-msg");
+
+      /* Convert HSL to hex */
+      function hslToHex(h, s, l) {
+        s /= 100;
+        l /= 100;
+        function f(n) {
+          var k = (n + h / 30) % 12;
+          var color = l - s * Math.min(l, 1 - l) * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+          return Math.round(255 * color).toString(16).padStart(2, "0");
+        }
+        return "#" + f(0) + f(8) + f(4);
+      }
+
+      /* Generate 5 harmonious colors */
+      function generatePalette() {
+        var baseHue = Math.floor(Math.random() * 360);
+        var colors = [];
+        var type = Math.floor(Math.random() * 3);
+
+        for (var i = 0; i < 5; i++) {
+          var h, s, l;
+
+          if (type === 0) {
+            /* Analogous: hues close together */
+            h = (baseHue + i * 25 - 50) % 360;
+            if (h < 0) h += 360;
+            s = 55 + Math.random() * 25;
+            l = 45 + Math.random() * 20;
+          } else if (type === 1) {
+            /* Monochrome: same hue, varied saturation and lightness */
+            h = baseHue;
+            s = 30 + i * 12 + Math.random() * 10;
+            l = 25 + i * 12 + Math.random() * 5;
+          } else {
+            /* Triadic spread with variation */
+            h = (baseHue + i * 72 + Math.random() * 20 - 10) % 360;
+            if (h < 0) h += 360;
+            s = 50 + Math.random() * 30;
+            l = 42 + Math.random() * 22;
+          }
+
+          colors.push(hslToHex(h, s, l));
+        }
+
+        return colors;
+      }
+
+      /* Copy to clipboard */
+      function copyHex(hex) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(hex);
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = hex;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+
+        copyMsg.textContent = "Copied " + hex;
+        clearTimeout(copyHex._timer);
+        copyHex._timer = setTimeout(function () {
+          copyMsg.textContent = "";
+        }, 1500);
+      }
+
+      /* Render palette */
+      function render(colors) {
+        paletteEl.innerHTML = "";
+        copyMsg.textContent = "";
+
+        for (var i = 0; i < colors.length; i++) {
+          var swatch = document.createElement("div");
+          swatch.className = "palette-swatch";
+
+          var colorBlock = document.createElement("div");
+          colorBlock.className = "palette-swatch__color";
+          colorBlock.style.backgroundColor = colors[i];
+          colorBlock.setAttribute("role", "button");
+          colorBlock.setAttribute("tabindex", "0");
+          colorBlock.setAttribute("aria-label", "Copy " + colors[i]);
+          colorBlock.dataset.hex = colors[i];
+
+          var hexLabel = document.createElement("span");
+          hexLabel.className = "palette-swatch__hex";
+          hexLabel.textContent = colors[i];
+          hexLabel.dataset.hex = colors[i];
+
+          swatch.appendChild(colorBlock);
+          swatch.appendChild(hexLabel);
+          paletteEl.appendChild(swatch);
+        }
+      }
+
+      /* Event delegation for clicks */
+      paletteEl.addEventListener("click", function (e) {
+        var hex = e.target.dataset.hex;
+        if (hex) copyHex(hex);
+      });
+
+      paletteEl.addEventListener("keydown", function (e) {
+        if ((e.key === "Enter" || e.key === " ") && e.target.dataset.hex) {
+          e.preventDefault();
+          copyHex(e.target.dataset.hex);
+        }
+      });
+
+      generateBtn.addEventListener("click", function () {
+        render(generatePalette());
+      });
+
+      /* Initial palette */
+      render(generatePalette());
+    })();
+  </script>
+</body>
+</html>

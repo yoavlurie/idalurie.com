@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ida Lurie</title>
-  <meta name="description" content="Portfolio and projects by Ida Lurie — builder, designer, creator.">
+  <meta name="description" content="Portfolio and interactive projects by Ida Lurie — builder of interactive things.">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -19,8 +19,6 @@
         <ul class="site-nav__list">
           <li class="site-nav__item"><a href="index.html" class="site-nav__link" aria-current="page">Home</a></li>
           <li class="site-nav__item"><a href="about.html" class="site-nav__link">About</a></li>
-          <li class="site-nav__item"><a href="projects.html" class="site-nav__link">Projects</a></li>
-          <li class="site-nav__item"><a href="photography.html" class="site-nav__link">Photography</a></li>
           <li class="site-nav__item"><a href="games.html" class="site-nav__link">Games</a></li>
         </ul>
       </nav>
@@ -30,35 +28,41 @@
   <main>
     <section class="hero">
       <div class="container">
-        <h1 class="hero__name">Id<a href="games/secret.html" class="hero__secret-link" aria-label="a">a</a> Lurie</h1>
-        <p class="hero__subtitle">Builder. Designer. Creator.</p>
+        <h1 class="hero__name"><span class="hero__i-wrap"><a href="games/secret.html" class="hero__secret-dot" aria-hidden="true" tabindex="-1"></a>I</span>da Lurie</h1>
+        <p class="hero__subtitle">Builder of Interactive Things</p>
         <p class="hero__intro">
-          Hi, I'm Ida. I'm 12 years old and I love building things — websites, games, and anything I can dream up. This is where I share what I'm working on.
+          Hi, I'm Ida. I'm 12 years old and I love building things — websites, games, tools, and anything I can dream up. This is where I share what I'm working on.
         </p>
       </div>
     </section>
 
     <section class="section">
       <div class="container">
-        <h2 class="section__title section__title--center">Featured Projects</h2>
-        <div class="card-grid card-grid--3">
+        <h2 class="section__title section__title--center">Play My Games</h2>
+        <div class="card-grid card-grid--2">
 
           <article class="card">
             <h3 class="card__title">Pixel Art Maker</h3>
-            <p class="card__description">A browser-based tool for creating pixel art, one square at a time.</p>
-            <a href="projects.html" class="card__link">View Project &rarr;</a>
+            <p class="card__description">Create pixel art right in your browser. Pick colors, choose a grid size, and export your work as a PNG.</p>
+            <a href="games/pixel-art.html" class="btn">Play</a>
           </article>
 
           <article class="card">
             <h3 class="card__title">Story Generator</h3>
-            <p class="card__description">Type a word and get a randomly generated short story built around it.</p>
-            <a href="projects.html" class="card__link">View Project &rarr;</a>
+            <p class="card__description">Press a button and get a brand new randomly generated short story every time.</p>
+            <a href="games/story-generator.html" class="btn">Play</a>
           </article>
 
           <article class="card">
             <h3 class="card__title">Color Palette Tool</h3>
-            <p class="card__description">Generate beautiful color combinations for your next creative project.</p>
-            <a href="projects.html" class="card__link">View Project &rarr;</a>
+            <p class="card__description">Generate beautiful harmonious color palettes. Click any color to copy its hex code.</p>
+            <a href="games/color-palette.html" class="btn">Play</a>
+          </article>
+
+          <article class="card">
+            <h3 class="card__title">Typing Speed Test</h3>
+            <p class="card__description">Test how fast and accurately you can type. Race against a 30-second timer.</p>
+            <a href="games/typing-test.html" class="btn">Play</a>
           </article>
 
         </div>

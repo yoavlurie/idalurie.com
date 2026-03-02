@@ -24,31 +24,4 @@ document.addEventListener("DOMContentLoaded", function () {
   if (yearEl) {
     yearEl.textContent = new Date().getFullYear();
   }
-
-  /* ---- Inline Demo Game (Games Page) ---- */
-
-  var demoArea = document.querySelector(".games-demo__area");
-
-  if (demoArea) {
-    var demoTarget = demoArea.querySelector(".games-demo__target");
-    var demoScore = demoArea.querySelector(".games-demo__score");
-    var score = 0;
-
-    function moveDemoTarget() {
-      var maxX = demoArea.offsetWidth - 40;
-      var maxY = demoArea.offsetHeight - 40;
-      var x = Math.random() * maxX;
-      var y = Math.random() * maxY;
-      demoTarget.style.left = x + "px";
-      demoTarget.style.top = y + "px";
-    }
-
-    moveDemoTarget();
-
-    demoTarget.addEventListener("click", function () {
-      score++;
-      demoScore.textContent = "Score: " + score;
-      moveDemoTarget();
-    });
-  }
 });

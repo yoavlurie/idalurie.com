@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Story Generator — Ida Lurie</title>
+  <meta name="description" content="Generate a random short story with one click.">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Story Generator</h1>
+      <p class="game-page__description">Click the button to generate a brand new short story. Every story is randomly assembled from characters, settings, discoveries, and twists.</p>
+
+      <div class="story-output" id="story-output" aria-live="polite">
+        <p class="story-placeholder">Press the button to generate a story.</p>
+      </div>
+
+      <div class="text-center">
+        <button class="btn" id="generate-btn" type="button">Generate Story</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+    (function () {
+      "use strict";
+
+      var output = document.getElementById("story-output");
+      var btn = document.getElementById("generate-btn");
+
+      function pick(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      var characters = [
+        "a young inventor named Sage",
+        "a curious astronaut called Nova",
+        "a talking fox named Ember",
+        "a time-traveling librarian named Page",
+        "a robot who loved to paint",
+        "a deep-sea explorer named Coral",
+        "a mischievous ghost called Whisper",
+        "a young coder named Pixel",
+        "a mapmaker who had never left home",
+        "a musician who could hear colors"
+      ];
+
+      var settings = [
+        "a floating island above the clouds",
+        "an ancient library where the books rearranged themselves",
+        "a clockwork city powered by music",
+        "a forest where the trees changed color with every sound",
+        "a space station at the edge of the galaxy",
+        "an underwater kingdom made of coral and light",
+        "a village hidden inside a dormant volcano",
+        "a train that traveled between dreams",
+        "a tower that grew one floor taller each night",
+        "a desert where the sand remembered everything"
+      ];
+
+      var discoveries = [
+        "a door that only appeared at midnight",
+        "a map that drew itself in real time",
+        "a melody that could move solid objects",
+        "a crystal that showed possible futures",
+        "a code hidden in the pattern of the stars",
+        "a key that fit no known lock",
+        "a letter from someone who hadn't been born yet",
+        "a mirror that reflected a completely different world",
+        "a clock that ticked backwards",
+        "a seed that grew into something different every time"
+      ];
+
+      var twists = [
+        "what seemed impossible was actually the simplest answer of all",
+        "the real discovery wasn't the object — it was the journey that led to it",
+        "they realized the secret had been inside them the whole time",
+        "the ending turned out to be just the beginning of something bigger",
+        "everything changed when they decided to share what they had found",
+        "the biggest mystery was why no one had ever thought to try before"
+      ];
+
+      var templates = [
+        function (c, s, d, t) {
+          return "Once, " + c + " found themselves in " + s + ". Everything changed when they stumbled upon " + d + ". They spent days trying to understand it, following every clue they could find. Just when they were about to give up, something clicked. It turned out that " + t + ".";
+        },
+        function (c, s, d, t) {
+          return c.charAt(0).toUpperCase() + c.slice(1) + " had always dreamed of visiting " + s + ". When they finally arrived, they found " + d + ". At first, it seemed like a mystery that could never be solved. But after a long moment of quiet thinking, they understood. " + t.charAt(0).toUpperCase() + t.slice(1) + ". And that made all the difference.";
+        },
+        function (c, s, d, t) {
+          return "No one believed " + c + " when they said they had been to " + s + ". But the proof was impossible to ignore — they had brought back " + d + ". Everyone wanted to know how it worked and where it came from. The truth surprised them all: " + t + ".";
+        },
+        function (c, s, d, t) {
+          return "Deep in " + s + ", " + c + " was known for asking questions nobody else thought to ask. One day, they found " + d + ". The whole world seemed to shift. Because once you know that " + t + ", nothing looks quite the same.";
+        },
+        function (c, s, d, t) {
+          return "The story of " + c + " began in " + s + ". Life was quiet until the day they came across " + d + ". It didn't make sense at first. They turned it over in their mind for weeks. Then, in a flash, they saw it clearly — " + t + ".";
+        }
+      ];
+
+      function generateStory() {
+        var c = pick(characters);
+        var s = pick(settings);
+        var d = pick(discoveries);
+        var t = pick(twists);
+        var template = pick(templates);
+        return template(c, s, d, t);
+      }
+
+      btn.addEventListener("click", function () {
+        var story = generateStory();
+        output.innerHTML = '<p class="story-text">' + story + "</p>";
+      });
+    })();
+  </script>
+</body>
+</html>
