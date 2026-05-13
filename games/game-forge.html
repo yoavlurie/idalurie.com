@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Forge — Ida Lurie</title>
+  <meta name="description" content="Design and play your own platformer games. Place platforms, coins, and enemies, then hit play.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .forge-wrap{display:flex;justify-content:center;margin-bottom:1rem}
+    .forge-canvas{border:1px solid var(--color-border);border-radius:var(--radius);cursor:crosshair;max-width:100%;touch-action:none}
+    .forge-palette{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem}
+    .forge-item{display:flex;align-items:center;gap:.35rem;padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text);cursor:pointer;font-family:inherit;font-size:.8125rem;transition:all var(--transition)}
+    .forge-item:hover{border-color:var(--color-accent)}
+    .forge-item.is-selected{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
+    .forge-item__icon{width:16px;height:16px;border-radius:2px;display:inline-block}
+    .forge-toolbar{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;align-items:center}
+    .forge-mode{font-size:.875rem;font-weight:600;padding:.35rem .75rem;border-radius:4px}
+    .forge-mode--edit{background:#e3f2fd;color:#1565c0}
+    .forge-mode--play{background:#e8f5e9;color:#2e7d32}
+    .forge-stats{display:flex;gap:1.5rem;margin-bottom:1rem;font-size:.8125rem;color:var(--color-text-muted);flex-wrap:wrap}
+    .forge-stats span{font-weight:600;color:var(--color-text)}
+    .forge-settings{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;align-items:center}
+    .forge-settings label{font-size:.8125rem;color:var(--color-text-muted);display:flex;align-items:center;gap:.35rem}
+    .forge-settings input[type="range"]{width:80px}
+    .forge-codes{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+    .forge-codes input{flex:1;min-width:200px;padding:.5rem;font-family:inherit;font-size:.8125rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text)}
+    @media(prefers-color-scheme:dark){
+      .forge-mode--edit{background:#1a237e;color:#90caf9}
+      .forge-mode--play{background:#1b5e20;color:#a5d6a7}
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Game Forge</h1>
+      <p class="game-page__description">Design your own platformer. Place platforms, coins, enemies, and a goal — then press Play to test it. Build, play, repeat.</p>
+
+      <div class="game-area">
+        <div class="forge-toolbar">
+          <span class="forge-mode forge-mode--edit" id="mode-label">Edit Mode</span>
+          <button class="btn btn--small" id="play-btn" type="button">▶ Play</button>
+          <button class="btn btn--small btn--secondary" id="stop-btn" type="button" style="display:none">■ Stop</button>
+          <button class="btn btn--small btn--secondary" id="clear-btn" type="button">Clear</button>
+          <button class="btn btn--small btn--secondary" id="template-btn" type="button">Load Template</button>
+        </div>
+
+        <p style="font-size:.8125rem;color:var(--color-text-muted);margin-bottom:.75rem">Click to place items. Right-click to erase. In play mode, use Arrow Keys or WASD to move and Space/Up to jump.</p>
+
+        <div class="forge-palette" id="palette"></div>
+
+        <div class="forge-settings">
+          <label>Gravity: <input type="range" id="gravity" min="2" max="15" value="8"> <span id="gravity-val">8</span></label>
+          <label>Speed: <input type="range" id="speed" min="1" max="8" value="4"> <span id="speed-val">4</span></label>
+          <label>Jump: <input type="range" id="jump" min="3" max="15" value="10"> <span id="jump-val">10</span></label>
+        </div>
+
+        <div class="forge-stats" id="stats">
+          <div>Coins: <span id="coin-count">0</span></div>
+          <div>Collected: <span id="coins-got">0</span></div>
+          <div>Status: <span id="status">Editing</span></div>
+        </div>
+
+        <div class="forge-wrap">
+          <canvas class="forge-canvas" id="game" width="640" height="400" aria-label="Game canvas"></canvas>
+        </div>
+
+        <div class="forge-codes">
+          <button class="btn btn--small btn--secondary" id="save-btn" type="button">Save Code</button>
+          <input type="text" id="code-input" placeholder="Paste game code..." aria-label="Save code">
+          <button class="btn btn--small btn--secondary" id="load-btn" type="button">Load</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+  (function(){
+    "use strict";
+
+    var CELL=32;
+    var COLS=20,ROWS=12;
+    var canvas=document.getElementById("game");
+    var ctx=canvas.getContext("2d");
+
+    var ITEMS=[
+      {id:"platform",name:"Platform",color:"#5a8a4e",icon:"#5a8a4e"},
+      {id:"brick",name:"Brick",color:"#b5503c",icon:"#b5503c"},
+      {id:"ice",name:"Ice",color:"#a0d8ef",icon:"#a0d8ef"},
+      {id:"coin",name:"Coin",color:"#ffd700",icon:"#ffd700"},
+      {id:"enemy",name:"Enemy",color:"#e53935",icon:"#e53935"},
+      {id:"spike",name:"Spike",color:"#ff6f00",icon:"#ff6f00"},
+      {id:"spring",name:"Spring",color:"#7cb342",icon:"#7cb342"},
+      {id:"goal",name:"Goal",color:"#ab47bc",icon:"#ab47bc"},
+      {id:"spawn",name:"Spawn",color:"#2196f3",icon:"#2196f3"},
+      {id:"eraser",name:"Eraser",color:null,icon:"transparent"}
+    ];
+
+    var grid={}; /* "x,y" -> item id */
+    var selectedItem=0;
+    var playing=false;
+
+    /* Player state */
+    var player={x:CELL,y:CELL*8,vx:0,vy:0,w:CELL*0.8,h:CELL*0.9,grounded:false,coinsGot:0,won:false,dead:false};
+    var config={gravity:8,speed:4,jump:10};
+    var keys={};
+    var enemies=[];
+    var coins=[];
+
+    /* Palette */
+    var paletteEl=document.getElementById("palette");
+    ITEMS.forEach(function(item,i){
+      var btn=document.createElement("button");
+      btn.className="forge-item"+(i===0?" is-selected":"");
+      var iconColor=item.icon||"transparent";
+      btn.innerHTML='<span class="forge-item__icon" style="background:'+iconColor+(item.id==="eraser"?";border:1px dashed var(--color-text-muted)":"")+'"></span>'+item.name;
+      btn.addEventListener("click",function(){
+        selectedItem=i;
+        var all=paletteEl.querySelectorAll(".forge-item");
+        for(var j=0;j<all.length;j++) all[j].classList.remove("is-selected");
+        btn.classList.add("is-selected");
+      });
+      paletteEl.appendChild(btn);
+    });
+
+    /* Settings */
+    ["gravity","speed","jump"].forEach(function(key){
+      var el=document.getElementById(key);
+      el.addEventListener("input",function(){
+        config[key]=parseInt(el.value);
+        document.getElementById(key+"-val").textContent=el.value;
+      });
+    });
+
+    /* Draw edit mode */
+    function drawEdit(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      /* Background */
+      ctx.fillStyle="#e8f4f8";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      /* Grid */
+      ctx.strokeStyle="rgba(0,0,0,0.06)";
+      for(var x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL,0);ctx.lineTo(x*CELL,canvas.height);ctx.stroke()}
+      for(var y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL);ctx.lineTo(canvas.width,y*CELL);ctx.stroke()}
+
+      /* Items */
+      Object.keys(grid).forEach(function(key){
+        var parts=key.split(",");
+        var gx=parseInt(parts[0]),gy=parseInt(parts[1]);
+        drawItem(grid[key],gx*CELL,gy*CELL,CELL);
+      });
+
+      countItems();
+    }
+
+    function drawItem(id,x,y,size){
+      var item=null;
+      for(var i=0;i<ITEMS.length;i++){if(ITEMS[i].id===id){item=ITEMS[i];break}}
+      if(!item||!item.color) return;
+
+      switch(id){
+        case "platform":
+        case "brick":
+        case "ice":
+          ctx.fillStyle=item.color;
+          ctx.fillRect(x+1,y+1,size-2,size-2);
+          /* Highlight */
+          ctx.fillStyle="rgba(255,255,255,0.2)";
+          ctx.fillRect(x+1,y+1,size-2,size*0.3);
+          break;
+        case "coin":
+          ctx.fillStyle="#ffd700";
+          ctx.beginPath();ctx.arc(x+size/2,y+size/2,size*0.3,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle="#ffeb3b";
+          ctx.beginPath();ctx.arc(x+size/2,y+size/2,size*0.18,0,Math.PI*2);ctx.fill();
+          break;
+        case "enemy":
+          ctx.fillStyle="#e53935";
+          ctx.fillRect(x+4,y+4,size-8,size-8);
+          /* eyes */
+          ctx.fillStyle="#fff";
+          ctx.fillRect(x+8,y+10,5,5);
+          ctx.fillRect(x+size-13,y+10,5,5);
+          ctx.fillStyle="#000";
+          ctx.fillRect(x+10,y+12,2,2);
+          ctx.fillRect(x+size-11,y+12,2,2);
+          break;
+        case "spike":
+          ctx.fillStyle="#ff6f00";
+          ctx.beginPath();
+          ctx.moveTo(x+2,y+size-2);
+          ctx.lineTo(x+size/2,y+4);
+          ctx.lineTo(x+size-2,y+size-2);
+          ctx.closePath();ctx.fill();
+          break;
+        case "spring":
+          ctx.fillStyle="#7cb342";
+          ctx.fillRect(x+4,y+size*0.6,size-8,size*0.35);
+          ctx.fillStyle="#8bc34a";
+          ctx.fillRect(x+6,y+size*0.4,size-12,size*0.2);
+          break;
+        case "goal":
+          ctx.fillStyle="#ab47bc";
+          ctx.fillRect(x+size/2-3,y+4,6,size-8);
+          ctx.fillStyle="#ce93d8";
+          ctx.fillRect(x+size/2,y+4,12,8);
+          break;
+        case "spawn":
+          ctx.fillStyle="rgba(33,150,243,0.3)";
+          ctx.fillRect(x+2,y+2,size-4,size-4);
+          ctx.strokeStyle="#2196f3";
+          ctx.setLineDash([3,3]);
+          ctx.strokeRect(x+2,y+2,size-4,size-4);
+          ctx.setLineDash([]);
+          break;
+      }
+    }
+
+    function countItems(){
+      var c=0;
+      Object.keys(grid).forEach(function(k){if(grid[k]==="coin") c++});
+      document.getElementById("coin-count").textContent=c;
+    }
+
+    /* Edit: place/erase */
+    function getGridPos(e){
+      var rect=canvas.getBoundingClientRect();
+      var scaleX=canvas.width/rect.width;
+      var scaleY=canvas.height/rect.height;
+      var mx=(e.clientX-rect.left)*scaleX;
+      var my=(e.clientY-rect.top)*scaleY;
+      return{x:Math.floor(mx/CELL),y:Math.floor(my/CELL)};
+    }
+
+    var isDrawing=false;
+    canvas.addEventListener("mousedown",function(e){
+      if(playing) return;
+      isDrawing=true;
+      placeAt(e,e.button===2);
+    });
+    canvas.addEventListener("mousemove",function(e){
+      if(!isDrawing||playing) return;
+      placeAt(e,false);
+    });
+    canvas.addEventListener("mouseup",function(){isDrawing=false});
+    canvas.addEventListener("contextmenu",function(e){
+      e.preventDefault();
+      if(!playing) placeAt(e,true);
+    });
+
+    function placeAt(e,erase){
+      var pos=getGridPos(e);
+      if(pos.x<0||pos.x>=COLS||pos.y<0||pos.y>=ROWS) return;
+      var key=pos.x+","+pos.y;
+      if(erase||ITEMS[selectedItem].id==="eraser"){
+        delete grid[key];
+      } else {
+        /* Only one spawn allowed */
+        if(ITEMS[selectedItem].id==="spawn"){
+          Object.keys(grid).forEach(function(k){if(grid[k]==="spawn") delete grid[k]});
+        }
+        grid[key]=ITEMS[selectedItem].id;
+      }
+      drawEdit();
+    }
+
+    /* Play mode */
+    function startPlay(){
+      playing=true;
+      document.getElementById("mode-label").textContent="Play Mode";
+      document.getElementById("mode-label").className="forge-mode forge-mode--play";
+      document.getElementById("play-btn").style.display="none";
+      document.getElementById("stop-btn").style.display="inline-block";
+      document.getElementById("status").textContent="Playing";
+
+      /* Find spawn */
+      var spawnX=CELL,spawnY=CELL*8;
+      Object.keys(grid).forEach(function(k){
+        if(grid[k]==="spawn"){
+          var p=k.split(",");
+          spawnX=parseInt(p[0])*CELL+4;
+          spawnY=parseInt(p[1])*CELL+2;
+        }
+      });
+
+      player={x:spawnX,y:spawnY,vx:0,vy:0,w:CELL*0.7,h:CELL*0.85,grounded:false,coinsGot:0,won:false,dead:false};
+
+      /* Build collision lists */
+      enemies=[];coins=[];
+      Object.keys(grid).forEach(function(k){
+        var p=k.split(",");
+        var px=parseInt(p[0])*CELL,py=parseInt(p[1])*CELL;
+        if(grid[k]==="enemy") enemies.push({x:px+4,y:py+4,w:CELL-8,h:CELL-8,ox:px,dir:1});
+        if(grid[k]==="coin") coins.push({x:px,y:py,alive:true});
+      });
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function stopPlay(){
+      playing=false;
+      document.getElementById("mode-label").textContent="Edit Mode";
+      document.getElementById("mode-label").className="forge-mode forge-mode--edit";
+      document.getElementById("play-btn").style.display="inline-block";
+      document.getElementById("stop-btn").style.display="none";
+      document.getElementById("status").textContent="Editing";
+      document.getElementById("coins-got").textContent="0";
+      drawEdit();
+    }
+
+    function gameLoop(){
+      if(!playing) return;
+      update();
+      drawPlay();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update(){
+      if(player.won||player.dead) return;
+
+      var spd=config.speed;
+      var grav=config.gravity*0.1;
+      var jmp=config.jump;
+
+      /* Input */
+      player.vx=0;
+      if(keys["ArrowLeft"]||keys["a"]) player.vx=-spd;
+      if(keys["ArrowRight"]||keys["d"]) player.vx=spd;
+      if((keys["ArrowUp"]||keys["w"]||keys[" "])&&player.grounded){player.vy=-jmp;player.grounded=false}
+
+      /* Gravity */
+      player.vy+=grav;
+      if(player.vy>15) player.vy=15;
+
+      /* Move X */
+      player.x+=player.vx;
+      resolveSolid("x");
+
+      /* Move Y */
+      player.y+=player.vy;
+      player.grounded=false;
+      resolveSolid("y");
+
+      /* Fall off screen */
+      if(player.y>canvas.height+CELL){player.dead=true;document.getElementById("status").textContent="Fell! Press Stop to edit."}
+
+      /* Coins */
+      coins.forEach(function(c){
+        if(!c.alive) return;
+        if(boxOverlap(player,{x:c.x+4,y:c.y+4,w:CELL-8,h:CELL-8})){
+          c.alive=false;
+          player.coinsGot++;
+          document.getElementById("coins-got").textContent=player.coinsGot;
+        }
+      });
+
+      /* Enemies (simple patrol) */
+      enemies.forEach(function(en){
+        en.x+=en.dir*1.5;
+        if(en.x<en.ox-CELL||en.x>en.ox+CELL) en.dir*=-1;
+        if(boxOverlap(player,en)){player.dead=true;document.getElementById("status").textContent="Hit an enemy! Press Stop."}
+      });
+
+      /* Spikes */
+      Object.keys(grid).forEach(function(k){
+        if(grid[k]==="spike"){
+          var p=k.split(",");
+          var sx=parseInt(p[0])*CELL,sy=parseInt(p[1])*CELL;
+          if(boxOverlap(player,{x:sx+4,y:sy+8,w:CELL-8,h:CELL-12})){
+            player.dead=true;document.getElementById("status").textContent="Spiked! Press Stop.";
+          }
+        }
+      });
+
+      /* Springs */
+      Object.keys(grid).forEach(function(k){
+        if(grid[k]==="spring"){
+          var p=k.split(",");
+          var sx=parseInt(p[0])*CELL,sy=parseInt(p[1])*CELL;
+          if(boxOverlap(player,{x:sx+4,y:sy+CELL*0.4,w:CELL-8,h:CELL*0.5})){
+            player.vy=-jmp*1.8;player.grounded=false;
+          }
+        }
+      });
+
+      /* Goal */
+      Object.keys(grid).forEach(function(k){
+        if(grid[k]==="goal"){
+          var p=k.split(",");
+          var gx=parseInt(p[0])*CELL,gy=parseInt(p[1])*CELL;
+          if(boxOverlap(player,{x:gx,y:gy,w:CELL,h:CELL})){
+            player.won=true;document.getElementById("status").textContent="You win! 🎉";
+          }
+        }
+      });
+
+      /* Boundaries */
+      if(player.x<0) player.x=0;
+      if(player.x+player.w>canvas.width) player.x=canvas.width-player.w;
+    }
+
+    function isSolid(id){return id==="platform"||id==="brick"||id==="ice"}
+
+    function resolveSolid(axis){
+      Object.keys(grid).forEach(function(k){
+        if(!isSolid(grid[k])) return;
+        var p=k.split(",");
+        var bx=parseInt(p[0])*CELL,by=parseInt(p[1])*CELL;
+        var block={x:bx,y:by,w:CELL,h:CELL};
+        if(!boxOverlap(player,block)) return;
+
+        if(axis==="x"){
+          if(player.vx>0) player.x=bx-player.w;
+          else if(player.vx<0) player.x=bx+CELL;
+        } else {
+          if(player.vy>0){player.y=by-player.h;player.vy=0;player.grounded=true}
+          else if(player.vy<0){player.y=by+CELL;player.vy=0}
+        }
+      });
+    }
+
+    function boxOverlap(a,b){
+      return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+    }
+
+    function drawPlay(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle="#e8f4f8";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      /* Draw world items */
+      Object.keys(grid).forEach(function(key){
+        var parts=key.split(",");
+        var gx=parseInt(parts[0]),gy=parseInt(parts[1]);
+        if(grid[key]==="coin"){
+          var c=null;
+          for(var i=0;i<coins.length;i++){if(coins[i].x===gx*CELL&&coins[i].y===gy*CELL){c=coins[i];break}}
+          if(c&&!c.alive) return;
+        }
+        drawItem(grid[key],gx*CELL,gy*CELL,CELL);
+      });
+
+      /* Draw enemies */
+      enemies.forEach(function(en){
+        ctx.fillStyle="#e53935";
+        ctx.fillRect(en.x,en.y,en.w,en.h);
+        ctx.fillStyle="#fff";
+        ctx.fillRect(en.x+4,en.y+6,4,4);
+        ctx.fillRect(en.x+en.w-8,en.y+6,4,4);
+      });
+
+      /* Draw player */
+      if(!player.dead){
+        ctx.fillStyle="#2196f3";
+        ctx.fillRect(player.x,player.y,player.w,player.h);
+        /* Face */
+        ctx.fillStyle="#fff";
+        ctx.fillRect(player.x+player.w*0.2,player.y+player.h*0.2,4,4);
+        ctx.fillRect(player.x+player.w*0.6,player.y+player.h*0.2,4,4);
+        ctx.fillStyle="#fff";
+        ctx.fillRect(player.x+player.w*0.25,player.y+player.h*0.55,player.w*0.5,3);
+      }
+
+      if(player.won){
+        ctx.fillStyle="rgba(0,0,0,0.4)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle="#fff";
+        ctx.font="bold 32px "+getComputedStyle(document.body).fontFamily;
+        ctx.textAlign="center";
+        ctx.fillText("Level Complete!",canvas.width/2,canvas.height/2-10);
+        ctx.font="16px "+getComputedStyle(document.body).fontFamily;
+        ctx.fillText("Coins: "+player.coinsGot+"/"+coins.length,canvas.width/2,canvas.height/2+20);
+      }
+
+      if(player.dead){
+        ctx.fillStyle="rgba(200,0,0,0.15)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+      }
+    }
+
+    /* Key handlers */
+    document.addEventListener("keydown",function(e){
+      keys[e.key]=true;
+      if(playing&&(e.key===" "||e.key==="ArrowUp"||e.key==="ArrowDown")) e.preventDefault();
+    });
+    document.addEventListener("keyup",function(e){keys[e.key]=false});
+
+    /* Buttons */
+    document.getElementById("play-btn").addEventListener("click",startPlay);
+    document.getElementById("stop-btn").addEventListener("click",stopPlay);
+    document.getElementById("clear-btn").addEventListener("click",function(){grid={};drawEdit()});
+
+    /* Template */
+    document.getElementById("template-btn").addEventListener("click",function(){
+      grid={};
+      /* Floor */
+      for(var x=0;x<COLS;x++) grid[x+","+(ROWS-1)]="platform";
+      /* Platforms */
+      for(var x=3;x<7;x++) grid[x+",8"]="platform";
+      for(var x=10;x<15;x++) grid[x+",6"]="brick";
+      for(var x=16;x<19;x++) grid[x+",9"]="ice";
+      /* Coins */
+      grid["4,7"]="coin";grid["5,7"]="coin";grid["11,5"]="coin";grid["12,5"]="coin";grid["13,5"]="coin";
+      /* Enemy */
+      grid["8,10"]="enemy";
+      /* Spike */
+      grid["14,10"]="spike";
+      /* Spring */
+      grid["9,10"]="spring";
+      /* Goal */
+      grid["18,8"]="goal";
+      /* Spawn */
+      grid["1,10"]="spawn";
+      drawEdit();
+    });
+
+    /* Save/Load */
+    document.getElementById("save-btn").addEventListener("click",function(){
+      try{
+        var items=[];
+        Object.keys(grid).forEach(function(k){
+          var p=k.split(",");
+          items.push([parseInt(p[0]),parseInt(p[1]),grid[k]]);
+        });
+        var code=btoa(JSON.stringify({i:items,c:config}));
+        document.getElementById("code-input").value=code;
+        if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+      }catch(e){}
+    });
+
+    document.getElementById("load-btn").addEventListener("click",function(){
+      try{
+        var d=JSON.parse(atob(document.getElementById("code-input").value.trim()));
+        grid={};
+        d.i.forEach(function(item){grid[item[0]+","+item[1]]=item[2]});
+        if(d.c){
+          config=d.c;
+          document.getElementById("gravity").value=config.gravity;
+          document.getElementById("gravity-val").textContent=config.gravity;
+          document.getElementById("speed").value=config.speed;
+          document.getElementById("speed-val").textContent=config.speed;
+          document.getElementById("jump").value=config.jump;
+          document.getElementById("jump-val").textContent=config.jump;
+        }
+        stopPlay();
+        drawEdit();
+      }catch(e){}
+    });
+
+    /* Init with template */
+    document.getElementById("template-btn").click();
+  })();
+  </script>
+</body>
+</html>

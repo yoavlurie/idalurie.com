@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life Unscripted — Ida Lurie</title>
+  <meta name="description" content="A life simulator where every choice shapes your story. No two lives are the same.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .life-bars{display:flex;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem}
+    .life-bar{flex:1;min-width:100px}
+    .life-bar__label{display:flex;justify-content:space-between;font-size:.75rem;font-weight:500;margin-bottom:.35rem;color:var(--color-text-muted)}
+    .life-bar__track{height:10px;background:var(--color-border);border-radius:5px;overflow:hidden}
+    .life-bar__fill{height:100%;border-radius:5px;transition:width .5s ease}
+    .life-header{display:flex;flex-wrap:wrap;gap:1.5rem;align-items:center;margin-bottom:1.5rem}
+    .life-header__age{font-size:2.5rem;font-weight:700;line-height:1}
+    .life-header__info{font-size:.875rem;color:var(--color-text-muted)}
+    .life-header__stage{font-weight:600;color:var(--color-text);display:block}
+    .life-event{background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;animation:fadeIn .4s ease}
+    .life-event__text{font-size:.9375rem;line-height:1.7;margin-bottom:1rem}
+    .life-choices{display:flex;flex-direction:column;gap:.5rem}
+    .life-choice{padding:.65rem 1rem;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg-alt);cursor:pointer;font-family:inherit;font-size:.875rem;color:var(--color-text);text-align:left;transition:border-color var(--transition),background var(--transition)}
+    .life-choice:hover{border-color:var(--color-accent);background:rgba(59,95,192,.05)}
+    .life-log{max-height:250px;overflow-y:auto;margin-bottom:1.5rem;padding:1rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);font-size:.8125rem;line-height:1.8;color:var(--color-text-muted)}
+    .life-log__entry{padding:.25rem 0;border-bottom:1px solid var(--color-border)}
+    .life-log__entry:last-child{border-bottom:none}
+    .life-money{font-family:"SF Mono","Fira Code",Menlo,Consolas,monospace;font-weight:600}
+    .life-codes{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+    .life-codes input{flex:1;min-width:200px;padding:.5rem;font-family:inherit;font-size:.8125rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text)}
+    .life-over{text-align:center;padding:2rem;animation:fadeIn .5s ease}
+    .life-over__title{font-size:1.5rem;font-weight:700;margin-bottom:.5rem}
+    .life-over__sub{color:var(--color-text-muted);margin-bottom:1.5rem}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Life Unscripted</h1>
+      <p class="game-page__description">Live an entire life through choices. Every decision shapes your story — no two lives are the same.</p>
+
+      <div class="game-area">
+        <div class="life-header" id="header">
+          <div class="life-header__age" id="age-display">0</div>
+          <div class="life-header__info">
+            <span class="life-header__stage" id="stage-display">Baby</span>
+            <span id="job-display">No job</span> · <span class="life-money" id="money-display">$0</span>
+          </div>
+        </div>
+
+        <div class="life-bars" id="stat-bars"></div>
+
+        <div id="event-area"></div>
+
+        <div class="life-log" id="log"><div class="life-log__entry">You were born! A new life begins.</div></div>
+
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          <button class="btn btn--small" id="age-btn" type="button">Age Up</button>
+          <button class="btn btn--small btn--secondary" id="restart-btn" type="button">New Life</button>
+        </div>
+
+        <div class="life-codes">
+          <button class="btn btn--small btn--secondary" id="save-btn" type="button">Save Code</button>
+          <input type="text" id="code-input" placeholder="Paste save code..." aria-label="Save code">
+          <button class="btn btn--small btn--secondary" id="load-btn" type="button">Load</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+  (function(){
+    "use strict";
+
+    function pick(a){return a[Math.floor(Math.random()*a.length)]}
+    function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+    function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+
+    var STAGES=[
+      {name:"Baby",min:0,max:4},
+      {name:"Child",min:5,max:12},
+      {name:"Teen",min:13,max:17},
+      {name:"Young Adult",min:18,max:29},
+      {name:"Adult",min:30,max:59},
+      {name:"Senior",min:60,max:100}
+    ];
+
+    var STAT_COLORS=["#51cf66","#ffd43b","#4d96ff","#ff6b6b"];
+    var STAT_NAMES=["Health","Happiness","Smarts","Looks"];
+
+    var JOBS_TEEN=["Babysitter","Lawn Mower","Pet Sitter","Lemonade Stand"];
+    var JOBS_YOUNG=["Cashier","Barista","Intern","Freelancer","Tutor","Dog Walker","Junior Developer","Social Media Manager"];
+    var JOBS_ADULT=["Teacher","Engineer","Chef","Writer","Doctor","Designer","Entrepreneur","Musician","Scientist","Pilot","Veterinarian","Architect","Photographer","Lawyer"];
+
+    /* Events by stage */
+    var EVENTS={
+      Baby:[
+        {text:"You took your first steps!",effects:{health:5,happiness:10}},
+        {text:"You said your first word! It was 'cookie'.",effects:{happiness:8,smarts:3}},
+        {text:"You had a bad case of the sniffles.",effects:{health:-5,happiness:-3}},
+        {text:"You made a friend at the playground!",effects:{happiness:10}}
+      ],
+      Child:[
+        {text:"You started school! So many new things to learn.",effects:{smarts:8},choices:[
+          {label:"Focus on studies",effects:{smarts:10,happiness:-3}},
+          {label:"Focus on making friends",effects:{happiness:10,smarts:2}},
+          {label:"Join a sports team",effects:{health:8,happiness:5}}
+        ]},
+        {text:"You found a stray kitten. What do you do?",choices:[
+          {label:"Adopt it!",effects:{happiness:15,health:-2}},
+          {label:"Find it a home",effects:{happiness:8,smarts:3}},
+          {label:"Leave it alone",effects:{smarts:2}}
+        ]},
+        {text:"A bully is picking on your friend at school.",choices:[
+          {label:"Stand up to the bully",effects:{happiness:5,health:-3,looks:2}},
+          {label:"Tell a teacher",effects:{smarts:5,happiness:3}},
+          {label:"Walk away",effects:{happiness:-5}}
+        ]},
+        {text:"You entered a science fair!",choices:[
+          {label:"Build a volcano",effects:{smarts:8,happiness:5}},
+          {label:"Do a plant experiment",effects:{smarts:10,health:3}},
+          {label:"Skip it and play instead",effects:{happiness:5,smarts:-3}}
+        ]},
+        {text:"Your birthday party was amazing!",effects:{happiness:12}}
+      ],
+      Teen:[
+        {text:"High school begins. Time to figure things out.",choices:[
+          {label:"Join the honor roll track",effects:{smarts:12,happiness:-5}},
+          {label:"Try out for sports",effects:{health:10,happiness:8,looks:3}},
+          {label:"Start a band",effects:{happiness:12,looks:5}}
+        ]},
+        {text:"You got invited to a party on a school night.",choices:[
+          {label:"Go and have fun",effects:{happiness:10,smarts:-5,health:-3}},
+          {label:"Stay home and study",effects:{smarts:8,happiness:-3}},
+          {label:"Go for an hour, then leave",effects:{happiness:5,smarts:2}}
+        ]},
+        {text:"You can get a part-time job. Interested?",choices:[
+          {label:"Yes, I want money!",effects:{smarts:3,happiness:-2},job:true,jobPool:"teen"},
+          {label:"No, school comes first",effects:{smarts:5}},
+          {label:"Start my own hustle",effects:{smarts:5,happiness:5},money:50}
+        ]},
+        {text:"You discovered a new hobby!",choices:[
+          {label:"Coding",effects:{smarts:10}},
+          {label:"Sports",effects:{health:8,happiness:5}},
+          {label:"Reading",effects:{smarts:8,happiness:5}},
+          {label:"Music",effects:{happiness:10,looks:3}}
+        ]},
+        {text:"Prom night is coming up!",effects:{happiness:8,looks:5}}
+      ],
+      "Young Adult":[
+        {text:"Time to decide your path after school.",choices:[
+          {label:"Go to college",effects:{smarts:15,happiness:5},money:-5000},
+          {label:"Start working full-time",effects:{smarts:3,happiness:3},job:true,jobPool:"young"},
+          {label:"Travel the world",effects:{happiness:15,looks:5,health:5},money:-3000},
+          {label:"Start a business",effects:{smarts:8},money:-2000,job:true,jobName:"Entrepreneur"}
+        ]},
+        {text:"You met someone special. Sparks are flying!",choices:[
+          {label:"Ask them out",effects:{happiness:12}},
+          {label:"Play it cool",effects:{happiness:3,looks:3}},
+          {label:"Focus on yourself",effects:{smarts:5,health:5}}
+        ]},
+        {text:"A career opportunity appears!",choices:[
+          {label:"Take the risky startup",effects:{smarts:8},money:randInt(-1000,5000)},
+          {label:"Choose the stable job",effects:{happiness:3},job:true,jobPool:"adult"},
+          {label:"Go back to school",effects:{smarts:12},money:-3000}
+        ]},
+        {text:"You have some savings. What to do?",choices:[
+          {label:"Invest it",effects:{smarts:5},money:randInt(-500,3000)},
+          {label:"Take a vacation",effects:{happiness:12,health:5},money:-1500},
+          {label:"Save it all",effects:{smarts:3},money:2000}
+        ]}
+      ],
+      Adult:[
+        {text:"Life is in full swing. New challenges arise.",choices:[
+          {label:"Focus on career growth",effects:{smarts:8,happiness:-3},money:5000},
+          {label:"Prioritize health & wellness",effects:{health:12,happiness:8}},
+          {label:"Learn a new skill",effects:{smarts:10,happiness:5}},
+          {label:"Volunteer in the community",effects:{happiness:10,smarts:3}}
+        ]},
+        {text:"A friend asks you to invest in their idea.",choices:[
+          {label:"Go all in",effects:{happiness:5},money:randInt(-5000,15000)},
+          {label:"Invest a small amount",effects:{happiness:3},money:randInt(-500,3000)},
+          {label:"Politely decline",effects:{smarts:3}}
+        ]},
+        {text:"You won a local award!",effects:{happiness:10,looks:5,smarts:3}},
+        {text:"Health check time. The doctor recommends changes.",choices:[
+          {label:"Start exercising daily",effects:{health:15,happiness:5}},
+          {label:"Change your diet",effects:{health:10,looks:5}},
+          {label:"Ignore the advice",effects:{health:-8,happiness:3}}
+        ]},
+        {text:"A big decision: relocate for a dream opportunity?",choices:[
+          {label:"Move to the big city",effects:{happiness:8,smarts:5},money:8000},
+          {label:"Stay where you are",effects:{happiness:5,health:3}},
+          {label:"Go international",effects:{happiness:12,smarts:8,health:-3},money:5000}
+        ]}
+      ],
+      Senior:[
+        {text:"Retirement is here. Time to enjoy life.",choices:[
+          {label:"Travel the world",effects:{happiness:15},money:-5000},
+          {label:"Take up gardening",effects:{health:8,happiness:10}},
+          {label:"Write your memoirs",effects:{smarts:5,happiness:8}},
+          {label:"Mentor young people",effects:{happiness:12,smarts:5}}
+        ]},
+        {text:"Your grandkids come to visit!",effects:{happiness:15}},
+        {text:"You feel nostalgic looking at old photos.",effects:{happiness:8}},
+        {text:"A friend invites you on an adventure.",choices:[
+          {label:"Go on a road trip",effects:{happiness:12,health:-3}},
+          {label:"Host a dinner party instead",effects:{happiness:8}},
+          {label:"Stay home and rest",effects:{health:5}}
+        ]}
+      ]
+    };
+
+    /* State */
+    var state={age:0,health:70,happiness:60,smarts:40,looks:50,money:0,job:"None",logEntries:["You were born! A new life begins."],dead:false};
+
+    var ageBtn=document.getElementById("age-btn");
+    var eventArea=document.getElementById("event-area");
+    var logEl=document.getElementById("log");
+
+    function getStage(){
+      for(var i=STAGES.length-1;i>=0;i--){
+        if(state.age>=STAGES[i].min) return STAGES[i].name;
+      }
+      return "Baby";
+    }
+
+    function addLog(msg){
+      state.logEntries.push("Age "+state.age+": "+msg);
+      renderLog();
+    }
+
+    function renderLog(){
+      logEl.innerHTML="";
+      var entries=state.logEntries.slice(-30);
+      entries.forEach(function(e){
+        var div=document.createElement("div");
+        div.className="life-log__entry";
+        div.textContent=e;
+        logEl.appendChild(div);
+      });
+      logEl.scrollTop=logEl.scrollHeight;
+    }
+
+    function renderBars(){
+      var bars=document.getElementById("stat-bars");
+      bars.innerHTML="";
+      var stats=[state.health,state.happiness,state.smarts,state.looks];
+      STAT_NAMES.forEach(function(name,i){
+        var val=clamp(stats[i],0,100);
+        var div=document.createElement("div");
+        div.className="life-bar";
+        div.innerHTML='<div class="life-bar__label"><span>'+name+'</span><span>'+val+'</span></div><div class="life-bar__track"><div class="life-bar__fill" style="width:'+val+'%;background:'+STAT_COLORS[i]+'"></div></div>';
+        bars.appendChild(div);
+      });
+    }
+
+    function renderHeader(){
+      document.getElementById("age-display").textContent=state.age;
+      document.getElementById("stage-display").textContent=getStage();
+      document.getElementById("job-display").textContent=state.job==="None"?"No job":state.job;
+      document.getElementById("money-display").textContent="$"+state.money.toLocaleString();
+    }
+
+    function applyEffects(effects){
+      if(!effects) return;
+      if(effects.health) state.health=clamp(state.health+effects.health,0,100);
+      if(effects.happiness) state.happiness=clamp(state.happiness+effects.happiness,0,100);
+      if(effects.smarts) state.smarts=clamp(state.smarts+effects.smarts,0,100);
+      if(effects.looks) state.looks=clamp(state.looks+effects.looks,0,100);
+    }
+
+    function showEvent(evt){
+      eventArea.innerHTML="";
+      var div=document.createElement("div");
+      div.className="life-event";
+
+      var text=document.createElement("div");
+      text.className="life-event__text";
+      text.textContent=evt.text;
+      div.appendChild(text);
+
+      if(evt.effects) applyEffects(evt.effects);
+
+      if(evt.choices&&evt.choices.length>0){
+        var choicesDiv=document.createElement("div");
+        choicesDiv.className="life-choices";
+        evt.choices.forEach(function(ch){
+          var btn=document.createElement("button");
+          btn.className="life-choice";
+          btn.textContent=ch.label;
+          btn.addEventListener("click",function(){
+            applyEffects(ch.effects);
+            if(ch.money) state.money+=ch.money;
+            if(ch.job){
+              if(ch.jobName) state.job=ch.jobName;
+              else if(ch.jobPool==="teen") state.job=pick(JOBS_TEEN);
+              else if(ch.jobPool==="young") state.job=pick(JOBS_YOUNG);
+              else if(ch.jobPool==="adult") state.job=pick(JOBS_ADULT);
+            }
+            addLog(evt.text+" → "+ch.label);
+            eventArea.innerHTML="";
+            renderBars();renderHeader();
+          });
+          choicesDiv.appendChild(btn);
+        });
+        div.appendChild(choicesDiv);
+      } else {
+        addLog(evt.text);
+      }
+
+      eventArea.appendChild(div);
+      renderBars();renderHeader();
+    }
+
+    function ageUp(){
+      if(state.dead) return;
+      state.age++;
+
+      /* Passive income from job */
+      if(state.job!=="None"){
+        var income=state.age<18?200:state.age<30?1500:3000;
+        state.money+=income;
+      }
+
+      /* Natural stat drift */
+      if(state.age>50) state.health=clamp(state.health-randInt(1,3),0,100);
+      if(state.age>40) state.looks=clamp(state.looks-randInt(0,2),0,100);
+
+      /* Random minor events */
+      state.happiness=clamp(state.happiness+randInt(-3,3),0,100);
+
+      /* Check death */
+      if(state.health<=0||state.age>=100||(state.age>70&&Math.random()<(state.age-70)/100)){
+        state.dead=true;
+        state.health=0;
+        eventArea.innerHTML='<div class="life-over"><div class="life-over__title">Life Complete</div><div class="life-over__sub">You lived to age '+state.age+'. Final net worth: $'+state.money.toLocaleString()+'</div><button class="btn" id="final-restart">Start a New Life</button></div>';
+        document.getElementById("final-restart").addEventListener("click",restart);
+        addLog("Your life journey ends at age "+state.age+".");
+        ageBtn.disabled=true;
+        renderBars();renderHeader();
+        return;
+      }
+
+      /* Pick event */
+      var stage=getStage();
+      var pool=EVENTS[stage]||EVENTS.Adult;
+      if(Math.random()<0.7){
+        showEvent(pick(pool));
+      } else {
+        /* Quiet year */
+        addLog("A peaceful year passes.");
+        eventArea.innerHTML='<div class="life-event"><div class="life-event__text">A quiet year. Nothing too eventful, but life goes on.</div></div>';
+      }
+
+      renderBars();renderHeader();
+    }
+
+    function restart(){
+      state={age:0,health:70,happiness:60,smarts:40,looks:50,money:0,job:"None",logEntries:["You were born! A new life begins."],dead:false};
+      ageBtn.disabled=false;
+      eventArea.innerHTML="";
+      renderBars();renderHeader();renderLog();
+    }
+
+    ageBtn.addEventListener("click",ageUp);
+    document.getElementById("restart-btn").addEventListener("click",restart);
+
+    /* Save/Load */
+    document.getElementById("save-btn").addEventListener("click",function(){
+      try{
+        var code=btoa(JSON.stringify({a:state.age,h:state.health,p:state.happiness,s:state.smarts,l:state.looks,m:state.money,j:state.job,d:state.dead,lg:state.logEntries.slice(-20)}));
+        document.getElementById("code-input").value=code;
+        if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+      }catch(e){}
+    });
+
+    document.getElementById("load-btn").addEventListener("click",function(){
+      try{
+        var d=JSON.parse(atob(document.getElementById("code-input").value.trim()));
+        state.age=d.a;state.health=d.h;state.happiness=d.p;state.smarts=d.s;state.looks=d.l;state.money=d.m;state.job=d.j;state.dead=d.d||false;state.logEntries=d.lg||[];
+        ageBtn.disabled=state.dead;
+        eventArea.innerHTML="";
+        renderBars();renderHeader();renderLog();
+      }catch(e){eventArea.innerHTML='<div class="life-event"><div class="life-event__text">Invalid save code. Try again.</div></div>'}
+    });
+
+    /* Init */
+    renderBars();renderHeader();renderLog();
+  })();
+  </script>
+</body>
+</html>

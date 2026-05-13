@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blocktopia — Ida Lurie</title>
+  <meta name="description" content="Build anything you can imagine in this block-based world. Place, break, and craft in a pixelated landscape.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .block-wrap{display:flex;justify-content:center;margin-bottom:1rem}
+    .block-canvas{border:1px solid var(--color-border);border-radius:var(--radius);cursor:crosshair;image-rendering:pixelated;max-width:100%;touch-action:none}
+    .block-palette{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.5rem}
+    .block-swatch{width:36px;height:36px;border:2px solid var(--color-border);border-radius:4px;cursor:pointer;transition:transform var(--transition),border-color var(--transition)}
+    .block-swatch:hover{transform:scale(1.1)}
+    .block-swatch.is-selected{border-color:var(--color-accent);transform:scale(1.15);box-shadow:0 0 8px rgba(59,95,192,.3)}
+    .block-hud{display:flex;flex-wrap:wrap;gap:1rem;align-items:center;margin-bottom:1rem;font-size:.8125rem;color:var(--color-text-muted)}
+    .block-hud__item{display:flex;align-items:center;gap:.35rem}
+    .block-hud__coord{font-family:"SF Mono","Fira Code",Menlo,Consolas,monospace;font-weight:600;color:var(--color-text)}
+    .block-tools{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+    .block-tool{padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text-muted);cursor:pointer;font-family:inherit;font-size:.8125rem;transition:all var(--transition)}
+    .block-tool:hover{border-color:var(--color-accent)}
+    .block-tool.is-active{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
+    .block-codes{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+    .block-codes input{flex:1;min-width:200px;padding:.5rem;font-family:inherit;font-size:.8125rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text)}
+    .block-controls-hint{font-size:.75rem;color:var(--color-text-muted);margin-bottom:1rem;line-height:1.6}
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Blocktopia</h1>
+      <p class="game-page__description">Build anything you can imagine. Pick a block type, click to place, right-click to break. Use WASD or arrow keys to explore.</p>
+
+      <div class="game-area">
+        <div class="block-controls-hint">
+          <strong>Controls:</strong> WASD or Arrow Keys to move the camera · Left-click to place · Right-click to break · Scroll to zoom
+        </div>
+
+        <div class="block-tools" id="tools">
+          <button class="block-tool is-active" data-tool="place">Place</button>
+          <button class="block-tool" data-tool="break">Break</button>
+          <button class="block-tool" data-tool="fill">Fill Row</button>
+        </div>
+
+        <p style="font-size:.8125rem;color:var(--color-text-muted);margin-bottom:.5rem">Block type:</p>
+        <div class="block-palette" id="palette"></div>
+
+        <div class="block-hud" id="hud">
+          <div class="block-hud__item">Camera: <span class="block-hud__coord" id="cam-pos">0, 0</span></div>
+          <div class="block-hud__item">Blocks placed: <span class="block-hud__coord" id="block-count">0</span></div>
+        </div>
+
+        <div class="block-wrap">
+          <canvas class="block-canvas" id="world" width="640" height="480" aria-label="Block world canvas"></canvas>
+        </div>
+
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <button class="btn btn--small btn--secondary" id="clear-btn" type="button">Clear World</button>
+          <button class="btn btn--small btn--secondary" id="export-btn" type="button">Export PNG</button>
+        </div>
+
+        <div class="block-codes">
+          <button class="btn btn--small btn--secondary" id="save-btn" type="button">Save Code</button>
+          <input type="text" id="code-input" placeholder="Paste save code..." aria-label="Save code">
+          <button class="btn btn--small btn--secondary" id="load-btn" type="button">Load</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+  (function(){
+    "use strict";
+
+    var BLOCKS=[
+      {id:"grass",name:"Grass",color:"#5da84e",top:"#7bc46a"},
+      {id:"dirt",name:"Dirt",color:"#8B6914"},
+      {id:"stone",name:"Stone",color:"#888888",top:"#999999"},
+      {id:"wood",name:"Wood",color:"#a0724e",top:"#b8845e"},
+      {id:"leaves",name:"Leaves",color:"#3a8a3a",top:"#4da84d"},
+      {id:"water",name:"Water",color:"#4a90d9",top:"#5ea8f0"},
+      {id:"sand",name:"Sand",color:"#e8d68a",top:"#f0e0a0"},
+      {id:"brick",name:"Brick",color:"#b5503c",top:"#c4604c"},
+      {id:"snow",name:"Snow",color:"#e8e8f0",top:"#f5f5ff"},
+      {id:"glass",name:"Glass",color:"rgba(180,220,255,0.5)",top:"rgba(200,235,255,0.6)"},
+      {id:"coal",name:"Coal",color:"#333333",top:"#444444"},
+      {id:"gold",name:"Gold",color:"#daa520",top:"#f0c040"},
+      {id:"lava",name:"Lava",color:"#e63900",top:"#ff5722"},
+      {id:"ice",name:"Ice",color:"#a0d8ef",top:"#c0eaff"},
+      {id:"planks",name:"Planks",color:"#c9a06c",top:"#d4b07c"},
+      {id:"flower",name:"Flower",color:"#5da84e",top:"#ff69b4"}
+    ];
+
+    var CELL=24;
+    var WORLD_W=100,WORLD_H=60;
+    var canvas=document.getElementById("world");
+    var ctx=canvas.getContext("2d");
+
+    var world={}; /* key: "x,y" -> block id */
+    var camX=0,camY=0;
+    var selectedBlock=0;
+    var tool="place";
+    var keys={};
+
+    /* Generate terrain */
+    function generateTerrain(){
+      world={};
+      for(var x=0;x<WORLD_W;x++){
+        var groundY=WORLD_H-5+Math.round(Math.sin(x*0.2)*2);
+        world[x+","+groundY]="grass";
+        for(var y=groundY+1;y<WORLD_H;y++){
+          world[x+","+y]=y>groundY+3?"stone":"dirt";
+        }
+      }
+      /* Add a few trees */
+      for(var t=0;t<8;t++){
+        var tx=5+Math.floor(Math.random()*(WORLD_W-10));
+        var ty=findGround(tx)-1;
+        if(ty<0) continue;
+        /* trunk */
+        for(var h=0;h<4;h++) world[tx+","+(ty-h)]="wood";
+        /* canopy */
+        for(var dx=-2;dx<=2;dx++){
+          for(var dy=-2;dy<=0;dy++){
+            if(Math.abs(dx)+Math.abs(dy)<=2){
+              var k=(tx+dx)+","+(ty-4+dy);
+              if(!world[k]) world[k]="leaves";
+            }
+          }
+        }
+      }
+    }
+
+    function findGround(x){
+      for(var y=0;y<WORLD_H;y++){
+        if(world[x+","+y]) return y;
+      }
+      return WORLD_H;
+    }
+
+    /* Palette */
+    var paletteEl=document.getElementById("palette");
+    BLOCKS.forEach(function(b,i){
+      var swatch=document.createElement("button");
+      swatch.className="block-swatch"+(i===0?" is-selected":"");
+      swatch.style.background=b.color;
+      swatch.title=b.name;
+      swatch.setAttribute("aria-label",b.name+" block");
+      swatch.addEventListener("click",function(){
+        selectedBlock=i;
+        var all=paletteEl.querySelectorAll(".block-swatch");
+        for(var j=0;j<all.length;j++) all[j].classList.remove("is-selected");
+        swatch.classList.add("is-selected");
+      });
+      paletteEl.appendChild(swatch);
+    });
+
+    /* Tools */
+    document.getElementById("tools").addEventListener("click",function(e){
+      var btn=e.target.closest(".block-tool");
+      if(!btn) return;
+      tool=btn.getAttribute("data-tool");
+      var all=document.querySelectorAll(".block-tool");
+      for(var i=0;i<all.length;i++) all[i].classList.remove("is-active");
+      btn.classList.add("is-active");
+    });
+
+    /* Draw */
+    function draw(){
+      var viewW=Math.ceil(canvas.width/CELL)+1;
+      var viewH=Math.ceil(canvas.height/CELL)+1;
+      var startX=Math.floor(camX/CELL);
+      var startY=Math.floor(camY/CELL);
+      var offX=-(camX%CELL);
+      var offY=-(camY%CELL);
+
+      /* Sky gradient */
+      var skyGrad=ctx.createLinearGradient(0,0,0,canvas.height);
+      skyGrad.addColorStop(0,"#87ceeb");
+      skyGrad.addColorStop(1,"#e0f0ff");
+      ctx.fillStyle=skyGrad;
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      for(var vy=0;vy<viewH;vy++){
+        for(var vx=0;vx<viewW;vx++){
+          var wx=startX+vx;
+          var wy=startY+vy;
+          var key=wx+","+wy;
+          if(!world[key]) continue;
+
+          var b=getBlock(world[key]);
+          if(!b) continue;
+
+          var px=offX+vx*CELL;
+          var py=offY+vy*CELL;
+
+          /* Block body */
+          ctx.fillStyle=b.color;
+          ctx.fillRect(px,py,CELL,CELL);
+
+          /* Top face highlight */
+          if(b.top){
+            ctx.fillStyle=b.top;
+            ctx.fillRect(px,py,CELL,CELL*0.3);
+          }
+
+          /* Grid outline */
+          ctx.strokeStyle="rgba(0,0,0,0.1)";
+          ctx.strokeRect(px,py,CELL,CELL);
+
+          /* Special: flower draws a little flower on grass */
+          if(world[key]==="flower"){
+            ctx.fillStyle="#ff69b4";
+            ctx.beginPath();ctx.arc(px+CELL/2,py+CELL*0.35,4,0,Math.PI*2);ctx.fill();
+            ctx.fillStyle="#ffeb3b";
+            ctx.beginPath();ctx.arc(px+CELL/2,py+CELL*0.35,2,0,Math.PI*2);ctx.fill();
+            ctx.fillStyle="#4caf50";
+            ctx.fillRect(px+CELL/2-1,py+CELL*0.45,2,CELL*0.4);
+          }
+        }
+      }
+
+      /* HUD */
+      document.getElementById("cam-pos").textContent=startX+", "+startY;
+      document.getElementById("block-count").textContent=Object.keys(world).length;
+    }
+
+    function getBlock(id){
+      for(var i=0;i<BLOCKS.length;i++){if(BLOCKS[i].id===id) return BLOCKS[i]}
+      return null;
+    }
+
+    /* Input: place/break */
+    function getWorldPos(e){
+      var rect=canvas.getBoundingClientRect();
+      var scaleX=canvas.width/rect.width;
+      var scaleY=canvas.height/rect.height;
+      var mx=(e.clientX-rect.left)*scaleX;
+      var my=(e.clientY-rect.top)*scaleY;
+      var wx=Math.floor((mx+camX)/CELL);
+      var wy=Math.floor((my+camY)/CELL);
+      return{x:wx,y:wy};
+    }
+
+    canvas.addEventListener("click",function(e){
+      var pos=getWorldPos(e);
+      var key=pos.x+","+pos.y;
+      if(tool==="place"){
+        world[key]=BLOCKS[selectedBlock].id;
+      } else if(tool==="break"){
+        delete world[key];
+      } else if(tool==="fill"){
+        for(var x=0;x<WORLD_W;x++) world[x+","+pos.y]=BLOCKS[selectedBlock].id;
+      }
+      draw();
+    });
+
+    canvas.addEventListener("contextmenu",function(e){
+      e.preventDefault();
+      var pos=getWorldPos(e);
+      delete world[pos.x+","+pos.y];
+      draw();
+    });
+
+    /* Keyboard movement */
+    document.addEventListener("keydown",function(e){keys[e.key]=true});
+    document.addEventListener("keyup",function(e){keys[e.key]=false});
+
+    function tick(){
+      var speed=6;
+      if(keys["w"]||keys["ArrowUp"]) camY-=speed;
+      if(keys["s"]||keys["ArrowDown"]) camY+=speed;
+      if(keys["a"]||keys["ArrowLeft"]) camX-=speed;
+      if(keys["d"]||keys["ArrowRight"]) camX+=speed;
+      draw();
+      requestAnimationFrame(tick);
+    }
+
+    /* Touch drag for mobile */
+    var touchStart=null;
+    canvas.addEventListener("touchstart",function(e){
+      if(e.touches.length===1){touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY,cx:camX,cy:camY}}
+    });
+    canvas.addEventListener("touchmove",function(e){
+      if(!touchStart||e.touches.length!==1) return;
+      e.preventDefault();
+      var dx=touchStart.x-e.touches[0].clientX;
+      var dy=touchStart.y-e.touches[0].clientY;
+      camX=touchStart.cx+dx;
+      camY=touchStart.cy+dy;
+    },{passive:false});
+    canvas.addEventListener("touchend",function(){touchStart=null});
+
+    /* Clear */
+    document.getElementById("clear-btn").addEventListener("click",function(){
+      generateTerrain();
+      camX=0;camY=(WORLD_H-15)*CELL;
+      draw();
+    });
+
+    /* Export */
+    document.getElementById("export-btn").addEventListener("click",function(){
+      var link=document.createElement("a");
+      link.download="blocktopia.png";
+      link.href=canvas.toDataURL("image/png");
+      link.click();
+    });
+
+    /* Save/Load */
+    document.getElementById("save-btn").addEventListener("click",function(){
+      try{
+        /* Compress: only store non-empty */
+        var blocks=[];
+        Object.keys(world).forEach(function(k){
+          var parts=k.split(",");
+          blocks.push([parseInt(parts[0]),parseInt(parts[1]),world[k]]);
+        });
+        var code=btoa(JSON.stringify({b:blocks,cx:camX,cy:camY}));
+        document.getElementById("code-input").value=code;
+        if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+      }catch(e){}
+    });
+
+    document.getElementById("load-btn").addEventListener("click",function(){
+      try{
+        var d=JSON.parse(atob(document.getElementById("code-input").value.trim()));
+        world={};
+        d.b.forEach(function(b){world[b[0]+","+b[1]]=b[2]});
+        camX=d.cx||0;camY=d.cy||0;
+        draw();
+      }catch(e){}
+    });
+
+    /* Init */
+    generateTerrain();
+    camX=0;camY=(WORLD_H-15)*CELL;
+    requestAnimationFrame(tick);
+  })();
+  </script>
+</body>
+</html>

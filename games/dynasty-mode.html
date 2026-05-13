@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynasty Mode — Ida Lurie</title>
+  <meta name="description" content="Pick a sport, team, and player. Lead your squad through a full season to the championship.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .dyn-screen{display:none;animation:fadeIn .4s ease}
+    .dyn-screen.is-active{display:block}
+    .dyn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.75rem;margin-bottom:1.5rem}
+    .dyn-card{padding:1rem;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg);cursor:pointer;text-align:center;transition:border-color var(--transition),transform var(--transition);font-family:inherit;color:var(--color-text);font-size:.875rem}
+    .dyn-card:hover{border-color:var(--color-accent);transform:translateY(-2px)}
+    .dyn-card.is-selected{border-color:var(--color-accent);background:var(--color-accent);color:#fff}
+    .dyn-card__sub{font-size:.75rem;color:var(--color-text-muted);margin-top:.25rem}
+    .dyn-card.is-selected .dyn-card__sub{color:rgba(255,255,255,.8)}
+    .dyn-stats{display:flex;flex-wrap:wrap;gap:1.5rem;margin-bottom:1.5rem}
+    .dyn-stat{text-align:center}
+    .dyn-stat__val{font-size:1.75rem;font-weight:700;display:block;line-height:1.2}
+    .dyn-stat__label{font-size:.75rem;color:var(--color-text-muted)}
+    .dyn-scoreboard{background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);padding:1.5rem;text-align:center;margin-bottom:1.5rem}
+    .dyn-scoreboard__vs{display:flex;align-items:center;justify-content:center;gap:1.5rem;margin-bottom:1rem}
+    .dyn-scoreboard__team{font-weight:600;font-size:1.125rem}
+    .dyn-scoreboard__score{font-size:2.5rem;font-weight:700;min-width:50px}
+    .dyn-scoreboard__divider{color:var(--color-text-muted);font-size:1.5rem}
+    .dyn-play{padding:1rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);margin-bottom:1rem;font-size:.875rem;line-height:1.7;min-height:60px;color:var(--color-text-muted)}
+    .dyn-record{display:flex;gap:2rem;margin-bottom:1.5rem;flex-wrap:wrap}
+    .dyn-record__item{font-size:.875rem;color:var(--color-text-muted)}
+    .dyn-record__item strong{color:var(--color-text)}
+    .dyn-table{width:100%;border-collapse:collapse;font-size:.8125rem;margin-bottom:1.5rem}
+    .dyn-table th,.dyn-table td{padding:.5rem .75rem;text-align:left;border-bottom:1px solid var(--color-border)}
+    .dyn-table th{font-weight:600;color:var(--color-text-muted);font-size:.75rem;text-transform:uppercase;letter-spacing:.03em}
+    .dyn-table tr.is-you{background:rgba(59,95,192,.08)}
+    .dyn-codes{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+    .dyn-codes input{flex:1;min-width:200px;padding:.5rem;font-family:inherit;font-size:.8125rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text)}
+    .dyn-tabs{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap}
+    .dyn-tab{padding:.4rem .75rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text-muted);cursor:pointer;font-family:inherit;font-size:.8125rem;transition:all var(--transition)}
+    .dyn-tab.is-active{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Dynasty Mode</h1>
+      <p class="game-page__description">Choose your sport, league, team, and player. Lead your squad through the season to championship glory.</p>
+
+      <div class="game-area">
+
+        <!-- Screen 1: Pick Sport -->
+        <div class="dyn-screen is-active" id="screen-sport">
+          <h2 style="font-size:1.125rem;margin-bottom:1rem">Choose Your Sport</h2>
+          <div class="dyn-grid" id="sport-grid"></div>
+        </div>
+
+        <!-- Screen 2: Pick League -->
+        <div class="dyn-screen" id="screen-league">
+          <h2 style="font-size:1.125rem;margin-bottom:1rem">Choose Your League</h2>
+          <div class="dyn-grid" id="league-grid"></div>
+          <button class="btn btn--small btn--secondary" id="back-sport" type="button">&larr; Back</button>
+        </div>
+
+        <!-- Screen 3: Pick Team -->
+        <div class="dyn-screen" id="screen-team">
+          <h2 style="font-size:1.125rem;margin-bottom:1rem">Choose Your Team</h2>
+          <div class="dyn-grid" id="team-grid"></div>
+          <button class="btn btn--small btn--secondary" id="back-league" type="button">&larr; Back</button>
+        </div>
+
+        <!-- Screen 4: Pick Position -->
+        <div class="dyn-screen" id="screen-pos">
+          <h2 style="font-size:1.125rem;margin-bottom:1rem">Choose Your Position</h2>
+          <div class="dyn-grid" id="pos-grid"></div>
+          <button class="btn btn--small btn--secondary" id="back-team" type="button">&larr; Back</button>
+        </div>
+
+        <!-- Screen 5: Season Play -->
+        <div class="dyn-screen" id="screen-play">
+          <div id="play-header"></div>
+          <div class="dyn-stats" id="player-stats"></div>
+
+          <div class="dyn-tabs" id="play-tabs">
+            <button class="dyn-tab is-active" data-tab="game">Game</button>
+            <button class="dyn-tab" data-tab="standings">Standings</button>
+            <button class="dyn-tab" data-tab="stats">My Stats</button>
+          </div>
+
+          <div id="tab-game">
+            <div class="dyn-scoreboard" id="scoreboard" style="display:none"></div>
+            <div class="dyn-play" id="play-by-play"></div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem">
+              <button class="btn btn--small" id="play-game-btn" type="button">Play Next Game</button>
+              <button class="btn btn--small btn--secondary" id="sim-game-btn" type="button">Sim Game</button>
+            </div>
+          </div>
+
+          <div id="tab-standings" style="display:none">
+            <table class="dyn-table" id="standings-table"></table>
+          </div>
+
+          <div id="tab-stats" style="display:none">
+            <div id="career-stats"></div>
+          </div>
+
+          <div class="dyn-codes">
+            <button class="btn btn--small btn--secondary" id="dyn-save" type="button">Save Code</button>
+            <input type="text" id="dyn-code" placeholder="Paste save code..." aria-label="Save code">
+            <button class="btn btn--small btn--secondary" id="dyn-load" type="button">Load</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+  (function(){
+    "use strict";
+
+    /* ---- DATA ---- */
+    var SPORTS={
+      basketball:{name:"Basketball",emoji:"🏀",positions:["Point Guard","Shooting Guard","Small Forward","Power Forward","Center"],statNames:["PTS","REB","AST"],scoreRange:[85,130],periods:4},
+      football:{name:"Football",emoji:"🏈",positions:["Quarterback","Running Back","Wide Receiver","Linebacker","Safety"],statNames:["YDS","TDs","TCKL"],scoreRange:[10,45],periods:4},
+      soccer:{name:"Soccer",emoji:"⚽",positions:["Striker","Midfielder","Defender","Goalkeeper","Winger"],statNames:["GOL","AST","SAV"],scoreRange:[0,5],periods:2},
+      baseball:{name:"Baseball",emoji:"⚾",positions:["Pitcher","Catcher","Shortstop","Outfielder","First Base"],statNames:["H","HR","RBI"],scoreRange:[1,12],periods:9},
+      hockey:{name:"Hockey",emoji:"🏒",positions:["Center","Left Wing","Right Wing","Defenseman","Goalie"],statNames:["GOL","AST","SAV"],scoreRange:[1,7],periods:3}
+    };
+
+    var LEAGUES=[
+      {id:"pro_m",name:"Pro League",sub:"Men's"},
+      {id:"pro_w",name:"Pro League",sub:"Women's"},
+      {id:"col_m",name:"College",sub:"Men's"},
+      {id:"col_w",name:"College",sub:"Women's"}
+    ];
+
+    var TEAM_NAMES={
+      pro_m:["Storm","Blaze","Titans","Wolves","Falcons","Rockets","Kings","Thunder","Vipers","Sharks","Eagles","Bulldogs","Panthers","Knights","Hornets","Bears"],
+      pro_w:["Aces","Mercury","Storm","Sparks","Liberty","Wings","Mystics","Sun","Fever","Sky","Lynx","Dream","Valkyries","Phoenix","Reign","Spirit"],
+      col_m:["Wildcats","Bulldogs","Tigers","Bears","Eagles","Trojans","Crimson","Knights","Blue Devils","Spartans","Longhorns","Wolverines","Gators","Huskies","Cardinals","Rebels"],
+      col_w:["Gamecocks","Huskies","Cardinals","Bruins","Hawkeyes","Aggies","Wolfpack","Ducks","Sun Devils","Mustangs","Pioneers","Mountaineers","Owls","Cougars","Raiders","Jaguars"]
+    };
+
+    var CITIES=["Metro","Capital","Harbor","Summit","Valley","Bay","Ridge","Lakeside","Prairie","Coastal","Northern","Southern","Eastern","Western","Central","Grand"];
+
+    /* ---- STATE ---- */
+    var state={sport:null,league:null,teamIdx:null,position:null,gameNum:0,seasonLen:16,wins:0,losses:0,myScore:0,oppScore:0,careerStats:[0,0,0],gamesPlayed:0,teams:[],playoffRound:0,champion:false};
+
+    function pick(a){return a[Math.floor(Math.random()*a.length)]}
+    function randInt(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+
+    /* ---- SCREENS ---- */
+    function showScreen(id){
+      var screens=document.querySelectorAll(".dyn-screen");
+      for(var i=0;i<screens.length;i++) screens[i].classList.remove("is-active");
+      document.getElementById("screen-"+id).classList.add("is-active");
+    }
+
+    /* Sport picker */
+    var sportGrid=document.getElementById("sport-grid");
+    Object.keys(SPORTS).forEach(function(key){
+      var s=SPORTS[key];
+      var btn=document.createElement("button");
+      btn.className="dyn-card";
+      btn.innerHTML='<div style="font-size:2rem">'+s.emoji+'</div><div style="margin-top:.5rem;font-weight:600">'+s.name+'</div>';
+      btn.addEventListener("click",function(){state.sport=key;showScreen("league")});
+      sportGrid.appendChild(btn);
+    });
+
+    /* League picker */
+    var leagueGrid=document.getElementById("league-grid");
+    LEAGUES.forEach(function(l){
+      var btn=document.createElement("button");
+      btn.className="dyn-card";
+      btn.innerHTML='<div style="font-weight:600">'+l.name+'</div><div class="dyn-card__sub">'+l.sub+'</div>';
+      btn.addEventListener("click",function(){state.league=l.id;buildTeams();showScreen("team")});
+      leagueGrid.appendChild(btn);
+    });
+
+    /* Build teams */
+    function buildTeams(){
+      var names=TEAM_NAMES[state.league]||TEAM_NAMES.pro_m;
+      state.teams=[];
+      for(var i=0;i<names.length;i++){
+        state.teams.push({name:CITIES[i]+" "+names[i],wins:0,losses:0,rating:60+randInt(0,35)});
+      }
+    }
+
+    /* Team picker */
+    function renderTeams(){
+      var grid=document.getElementById("team-grid");
+      grid.innerHTML="";
+      state.teams.forEach(function(t,idx){
+        var btn=document.createElement("button");
+        btn.className="dyn-card";
+        btn.innerHTML='<div style="font-weight:600">'+t.name+'</div><div class="dyn-card__sub">Rating: '+t.rating+'</div>';
+        btn.addEventListener("click",function(){state.teamIdx=idx;showScreen("pos");renderPositions()});
+        grid.appendChild(btn);
+      });
+    }
+
+    /* Position picker */
+    function renderPositions(){
+      var grid=document.getElementById("pos-grid");
+      grid.innerHTML="";
+      var sp=SPORTS[state.sport];
+      sp.positions.forEach(function(p){
+        var btn=document.createElement("button");
+        btn.className="dyn-card";
+        btn.innerHTML='<div style="font-weight:600">'+p+'</div>';
+        btn.addEventListener("click",function(){state.position=p;startSeason()});
+        grid.appendChild(btn);
+      });
+    }
+
+    /* Tabs */
+    document.getElementById("play-tabs").addEventListener("click",function(e){
+      var tab=e.target.closest(".dyn-tab");
+      if(!tab) return;
+      var tabs=document.querySelectorAll(".dyn-tab");
+      for(var i=0;i<tabs.length;i++) tabs[i].classList.remove("is-active");
+      tab.classList.add("is-active");
+      var which=tab.getAttribute("data-tab");
+      document.getElementById("tab-game").style.display=which==="game"?"block":"none";
+      document.getElementById("tab-standings").style.display=which==="standings"?"block":"none";
+      document.getElementById("tab-stats").style.display=which==="stats"?"block":"none";
+      if(which==="standings") renderStandings();
+      if(which==="stats") renderCareerStats();
+    });
+
+    /* Start season */
+    function startSeason(){
+      state.gameNum=0;state.wins=0;state.losses=0;state.careerStats=[0,0,0];state.gamesPlayed=0;state.playoffRound=0;state.champion=false;
+      showScreen("play");
+      updatePlayHeader();
+      document.getElementById("play-by-play").textContent="Season ready. Click 'Play Next Game' to begin!";
+      document.getElementById("scoreboard").style.display="none";
+    }
+
+    function updatePlayHeader(){
+      var t=state.teams[state.teamIdx];
+      var sp=SPORTS[state.sport];
+      var label=state.playoffRound>0?"Playoffs Round "+state.playoffRound:"Game "+(state.gameNum+1)+" of "+state.seasonLen;
+      document.getElementById("play-header").innerHTML='<div style="margin-bottom:1rem"><span style="font-size:1.25rem;font-weight:700">'+t.name+'</span> <span style="color:var(--color-text-muted);font-size:.875rem">'+state.position+' — '+sp.name+'</span></div><div class="dyn-record"><div class="dyn-record__item"><strong>'+state.wins+'</strong> W</div><div class="dyn-record__item"><strong>'+state.losses+'</strong> L</div><div class="dyn-record__item"><strong>'+label+'</strong></div></div>';
+    }
+
+    function simGame(interactive){
+      var sp=SPORTS[state.sport];
+      var myTeam=state.teams[state.teamIdx];
+      var oppIdx;
+      do{oppIdx=randInt(0,state.teams.length-1)}while(oppIdx===state.teamIdx);
+      var opp=state.teams[oppIdx];
+
+      var myS=randInt(sp.scoreRange[0],sp.scoreRange[1]);
+      var opS=randInt(sp.scoreRange[0],sp.scoreRange[1]);
+
+      /* Boost based on rating */
+      myS=Math.round(myS*(myTeam.rating/80));
+      opS=Math.round(opS*(opp.rating/80));
+      if(myS===opS) myS+=1;
+
+      var won=myS>opS;
+      if(won){state.wins++;myTeam.wins++}else{state.losses++;myTeam.losses++}
+
+      /* Sim other games */
+      for(var i=0;i<state.teams.length;i++){
+        if(i===state.teamIdx) continue;
+        var j;do{j=randInt(0,state.teams.length-1)}while(j===i||j===state.teamIdx);
+        if(Math.random()<(state.teams[i].rating/(state.teams[i].rating+state.teams[j].rating))){
+          state.teams[i].wins++;state.teams[j].losses++;
+        }else{
+          state.teams[j].wins++;state.teams[i].losses++;
+        }
+      }
+
+      /* Player stats */
+      var pStats=[randInt(5,35),randInt(1,15),randInt(0,12)];
+      state.careerStats[0]+=pStats[0];
+      state.careerStats[1]+=pStats[1];
+      state.careerStats[2]+=pStats[2];
+      state.gamesPlayed++;
+      state.gameNum++;
+
+      /* Display */
+      var sb=document.getElementById("scoreboard");
+      sb.style.display="block";
+      sb.innerHTML='<div class="dyn-scoreboard__vs"><div><div class="dyn-scoreboard__team">'+myTeam.name+'</div></div><div class="dyn-scoreboard__score">'+myS+'</div><div class="dyn-scoreboard__divider">—</div><div class="dyn-scoreboard__score">'+opS+'</div><div><div class="dyn-scoreboard__team">'+opp.name+'</div></div></div><div style="font-weight:600;color:'+(won?"var(--color-correct)":"var(--color-incorrect)")+'">'+(won?"Victory!":"Defeat")+'</div>';
+
+      var commentary=generateCommentary(sp,pStats,won,myTeam.name);
+      document.getElementById("play-by-play").innerHTML=commentary;
+
+      document.getElementById("player-stats").innerHTML=sp.statNames.map(function(n,i){return'<div class="dyn-stat"><span class="dyn-stat__val">'+pStats[i]+'</span><span class="dyn-stat__label">'+n+'</span></div>'}).join("");
+
+      /* Check season end */
+      if(state.gameNum>=state.seasonLen&&state.playoffRound===0){
+        if(state.wins>=state.seasonLen*0.4){
+          state.playoffRound=1;
+          document.getElementById("play-by-play").innerHTML+='<br><strong style="color:var(--color-accent)">You made the playoffs!</strong>';
+        } else {
+          document.getElementById("play-by-play").innerHTML+='<br><strong style="color:var(--color-incorrect)">Season over. Better luck next year.</strong>';
+          document.getElementById("play-game-btn").disabled=true;
+          document.getElementById("sim-game-btn").disabled=true;
+        }
+      } else if(state.playoffRound>0){
+        if(won){
+          if(state.playoffRound>=3){
+            state.champion=true;
+            document.getElementById("play-by-play").innerHTML='<strong style="font-size:1.25rem;color:var(--color-accent)">🏆 CHAMPIONS! You led '+myTeam.name+' to the title!</strong>';
+            document.getElementById("play-game-btn").disabled=true;
+            document.getElementById("sim-game-btn").disabled=true;
+          } else {
+            state.playoffRound++;
+            document.getElementById("play-by-play").innerHTML+='<br><strong style="color:var(--color-accent)">Advancing to Round '+state.playoffRound+'!</strong>';
+          }
+        } else {
+          document.getElementById("play-by-play").innerHTML+='<br><strong style="color:var(--color-incorrect)">Eliminated from the playoffs.</strong>';
+          document.getElementById("play-game-btn").disabled=true;
+          document.getElementById("sim-game-btn").disabled=true;
+        }
+      }
+
+      updatePlayHeader();
+    }
+
+    function generateCommentary(sp,stats,won,teamName){
+      var plays=[
+        "A strong start sets the tone early.",
+        "The crowd is on their feet!",
+        "An incredible play shifts momentum.",
+        "The defense holds firm under pressure.",
+        "A breakaway moment changes everything.",
+        "The coach calls a timeout to regroup.",
+        "Back-to-back scores ignite the fans!",
+        "A clutch performance when it matters most."
+      ];
+      var p1=pick(plays),p2=pick(plays);
+      while(p2===p1) p2=pick(plays);
+      return p1+" "+p2+(won?" "+teamName+" takes the win!":" A tough loss for "+teamName+".");
+    }
+
+    document.getElementById("play-game-btn").addEventListener("click",function(){simGame(true)});
+    document.getElementById("sim-game-btn").addEventListener("click",function(){simGame(false)});
+
+    /* Standings */
+    function renderStandings(){
+      var sorted=state.teams.slice().sort(function(a,b){return b.wins-a.wins||(a.losses-b.losses)});
+      var html='<thead><tr><th>#</th><th>Team</th><th>W</th><th>L</th><th>PCT</th></tr></thead><tbody>';
+      sorted.forEach(function(t,i){
+        var pct=t.wins+t.losses>0?(t.wins/(t.wins+t.losses)).toFixed(3):".000";
+        var isMe=state.teams.indexOf(t)===state.teamIdx;
+        html+='<tr'+(isMe?' class="is-you"':'')+'><td>'+(i+1)+'</td><td>'+t.name+(isMe?' ★':'')+'</td><td>'+t.wins+'</td><td>'+t.losses+'</td><td>'+pct+'</td></tr>';
+      });
+      html+='</tbody>';
+      document.getElementById("standings-table").innerHTML=html;
+    }
+
+    /* Career stats */
+    function renderCareerStats(){
+      var sp=SPORTS[state.sport];
+      var g=state.gamesPlayed||1;
+      var html='<h3 style="font-size:1rem;margin-bottom:1rem">Season Averages</h3><div class="dyn-stats">';
+      sp.statNames.forEach(function(n,i){
+        html+='<div class="dyn-stat"><span class="dyn-stat__val">'+(state.careerStats[i]/g).toFixed(1)+'</span><span class="dyn-stat__label">'+n+' / game</span></div>';
+      });
+      html+='</div><p style="color:var(--color-text-muted);font-size:.875rem">Games played: '+state.gamesPlayed+'</p>';
+      document.getElementById("career-stats").innerHTML=html;
+    }
+
+    /* Back buttons */
+    document.getElementById("back-sport").addEventListener("click",function(){showScreen("sport")});
+    document.getElementById("back-league").addEventListener("click",function(){showScreen("league")});
+    document.getElementById("back-team").addEventListener("click",function(){showScreen("team")});
+
+    /* Watch for team screen */
+    var observer=new MutationObserver(function(){
+      if(document.getElementById("screen-team").classList.contains("is-active")) renderTeams();
+    });
+    observer.observe(document.getElementById("screen-team"),{attributes:true});
+
+    /* Save/Load */
+    document.getElementById("dyn-save").addEventListener("click",function(){
+      try{
+        var save={sp:state.sport,lg:state.league,ti:state.teamIdx,po:state.position,gn:state.gameNum,sl:state.seasonLen,w:state.wins,l:state.losses,cs:state.careerStats,gp:state.gamesPlayed,pr:state.playoffRound,ch:state.champion,tm:state.teams.map(function(t){return{n:t.name,w:t.wins,l:t.losses,r:t.rating}})};
+        var code=btoa(JSON.stringify(save));
+        document.getElementById("dyn-code").value=code;
+        if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+      }catch(e){}
+    });
+
+    document.getElementById("dyn-load").addEventListener("click",function(){
+      try{
+        var d=JSON.parse(atob(document.getElementById("dyn-code").value.trim()));
+        state.sport=d.sp;state.league=d.lg;state.teamIdx=d.ti;state.position=d.po;
+        state.gameNum=d.gn;state.seasonLen=d.sl;state.wins=d.w;state.losses=d.l;
+        state.careerStats=d.cs;state.gamesPlayed=d.gp;state.playoffRound=d.pr;state.champion=d.ch;
+        state.teams=d.tm.map(function(t){return{name:t.n,wins:t.w,losses:t.l,rating:t.r}});
+        showScreen("play");
+        updatePlayHeader();
+        document.getElementById("play-by-play").textContent="Season loaded! Continue playing.";
+        document.getElementById("scoreboard").style.display="none";
+        document.getElementById("play-game-btn").disabled=false;
+        document.getElementById("sim-game-btn").disabled=false;
+        if(state.champion){
+          document.getElementById("play-game-btn").disabled=true;
+          document.getElementById("sim-game-btn").disabled=true;
+        }
+      }catch(e){document.getElementById("play-by-play").textContent="Invalid save code."}
+    });
+  })();
+  </script>
+</body>
+</html>

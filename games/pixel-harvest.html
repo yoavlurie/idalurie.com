@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Harvest — Ida Lurie</title>
+  <meta name="description" content="A pixel farming simulator. Plant, grow, and harvest crops across the seasons.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .farm-hud{display:flex;flex-wrap:wrap;gap:1.5rem;align-items:center;margin-bottom:1.5rem}
+    .farm-hud__stat{text-align:center}
+    .farm-hud__val{font-size:1.5rem;font-weight:700;display:block;line-height:1.2}
+    .farm-hud__label{font-size:.75rem;color:var(--color-text-muted)}
+    .farm-canvas-wrap{display:flex;justify-content:center;margin-bottom:1.5rem}
+    .farm-canvas{border:1px solid var(--color-border);border-radius:var(--radius);cursor:crosshair;image-rendering:pixelated;max-width:100%;touch-action:none}
+    .farm-shop{display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:1.5rem}
+    .farm-shop__item{padding:.5rem 1rem;border:1px solid var(--color-border);border-radius:var(--radius);background:var(--color-bg);color:var(--color-text);cursor:pointer;font-family:inherit;font-size:.8125rem;transition:border-color var(--transition),background var(--transition)}
+    .farm-shop__item:hover{border-color:var(--color-accent)}
+    .farm-shop__item.is-selected{border-color:var(--color-accent);background:var(--color-accent);color:#fff}
+    .farm-shop__item:disabled{opacity:.4;cursor:not-allowed}
+    .farm-codes{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+    .farm-codes input{flex:1;min-width:200px;padding:.5rem;font-family:inherit;font-size:.8125rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text)}
+    .farm-log{margin-top:1rem;padding:.75rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:4px;font-size:.8125rem;color:var(--color-text-muted);min-height:2rem;max-height:80px;overflow-y:auto}
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">Pixel Harvest</h1>
+      <p class="game-page__description">Plant seeds, tend your crops, and build a thriving farm. Each season brings new challenges. Earn gold to unlock better seeds.</p>
+
+      <div class="farm-hud" id="hud">
+        <div class="farm-hud__stat"><span class="farm-hud__val" id="gold">50</span><span class="farm-hud__label">Gold</span></div>
+        <div class="farm-hud__stat"><span class="farm-hud__val" id="day-display">Day 1</span><span class="farm-hud__label" id="season-display">Spring</span></div>
+        <div class="farm-hud__stat"><span class="farm-hud__val" id="harvested">0</span><span class="farm-hud__label">Harvested</span></div>
+        <button class="btn btn--small" id="next-day-btn" type="button">Next Day</button>
+      </div>
+
+      <div class="game-area">
+        <p style="font-size:.8125rem;color:var(--color-text-muted);margin-bottom:1rem">Select a seed below, then click a plot to plant. Click ripe crops to harvest.</p>
+
+        <div class="farm-shop" id="shop"></div>
+
+        <div class="farm-canvas-wrap">
+          <canvas class="farm-canvas" id="farm" width="480" height="480" aria-label="Farm grid"></canvas>
+        </div>
+
+        <div class="farm-log" id="log">Welcome to Pixel Harvest! Pick a seed and click a plot to start.</div>
+
+        <div class="farm-codes">
+          <button class="btn btn--small btn--secondary" id="save-btn" type="button">Save Code</button>
+          <input type="text" id="code-input" placeholder="Paste save code here..." aria-label="Save code">
+          <button class="btn btn--small btn--secondary" id="load-btn" type="button">Load</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+  (function(){
+    "use strict";
+
+    var COLS=8,ROWS=8,CELL=60;
+    var canvas=document.getElementById("farm");
+    var ctx=canvas.getContext("2d");
+
+    var SEEDS=[
+      {id:"wheat",name:"Wheat",cost:5,growDays:3,sellPrice:12,color:"#e6c84c",sprout:"#6abf4b"},
+      {id:"carrot",name:"Carrot",cost:8,growDays:4,sellPrice:20,color:"#f5893d",sprout:"#4daa57"},
+      {id:"berry",name:"Berry",cost:15,growDays:5,sellPrice:35,color:"#b84ddf",sprout:"#3da86b"},
+      {id:"melon",name:"Melon",cost:25,growDays:7,sellPrice:60,color:"#56c98f",sprout:"#2e8b57"},
+      {id:"star",name:"Starfruit",cost:50,growDays:10,sellPrice:130,color:"#ffd700",sprout:"#8bae3b"}
+    ];
+
+    var SEASONS=["Spring","Summer","Fall","Winter"];
+    var SEASON_COLORS=["#90ee90","#ffd700","#d2691e","#b0c4de"];
+
+    var state={gold:50,day:1,season:0,harvested:0,plots:[],selectedSeed:0};
+    for(var i=0;i<COLS*ROWS;i++) state.plots.push({planted:false,seedId:null,growthDay:0,ripe:false,watered:false});
+
+    var shopEl=document.getElementById("shop");
+    var goldEl=document.getElementById("gold");
+    var dayEl=document.getElementById("day-display");
+    var seasonEl=document.getElementById("season-display");
+    var harvestedEl=document.getElementById("harvested");
+    var logEl=document.getElementById("log");
+    var codeInput=document.getElementById("code-input");
+
+    function log(msg){logEl.textContent=msg}
+
+    function getSeed(id){for(var i=0;i<SEEDS.length;i++){if(SEEDS[i].id===id)return SEEDS[i]}return null}
+
+    function buildShop(){
+      shopEl.innerHTML="";
+      SEEDS.forEach(function(s,idx){
+        var btn=document.createElement("button");
+        btn.className="farm-shop__item"+(state.selectedSeed===idx?" is-selected":"");
+        btn.textContent=s.name+" ("+s.cost+"g)";
+        btn.disabled=state.gold<s.cost;
+        btn.addEventListener("click",function(){state.selectedSeed=idx;buildShop()});
+        shopEl.appendChild(btn);
+      });
+    }
+
+    function drawGrid(){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      for(var r=0;r<ROWS;r++){
+        for(var c=0;c<COLS;c++){
+          var idx=r*COLS+c;
+          var p=state.plots[idx];
+          var x=c*CELL,y=r*CELL;
+
+          /* soil */
+          ctx.fillStyle=(r+c)%2===0?"#8B6914":"#7a5c10";
+          ctx.fillRect(x,y,CELL,CELL);
+
+          if(p.planted){
+            var seed=getSeed(p.seedId);
+            if(!seed) continue;
+            var progress=p.growthDay/seed.growDays;
+            if(p.ripe){
+              /* ripe crop */
+              ctx.fillStyle=seed.color;
+              ctx.beginPath();
+              ctx.arc(x+CELL/2,y+CELL/2,CELL*0.35,0,Math.PI*2);
+              ctx.fill();
+              /* sparkle */
+              ctx.fillStyle="#fff";
+              ctx.globalAlpha=0.7+0.3*Math.sin(Date.now()/300);
+              ctx.beginPath();ctx.arc(x+CELL*0.65,y+CELL*0.3,3,0,Math.PI*2);ctx.fill();
+              ctx.globalAlpha=1;
+            } else {
+              /* growing */
+              var h=8+progress*20;
+              ctx.fillStyle=seed.sprout;
+              ctx.fillRect(x+CELL/2-2,y+CELL-4-h,4,h);
+              if(progress>0.3){
+                ctx.fillStyle=seed.sprout;
+                ctx.beginPath();ctx.arc(x+CELL/2,y+CELL-4-h,4+progress*6,0,Math.PI*2);ctx.fill();
+              }
+            }
+          }
+
+          /* grid lines */
+          ctx.strokeStyle="rgba(0,0,0,0.15)";
+          ctx.strokeRect(x,y,CELL,CELL);
+        }
+      }
+    }
+
+    function updateHud(){
+      goldEl.textContent=state.gold;
+      dayEl.textContent="Day "+state.day;
+      seasonEl.textContent=SEASONS[state.season];
+      seasonEl.style.color=SEASON_COLORS[state.season];
+      harvestedEl.textContent=state.harvested;
+      buildShop();
+    }
+
+    function nextDay(){
+      state.day++;
+      if(state.day%28===1&&state.day>1){
+        state.season=(state.season+1)%4;
+        if(state.season===3){
+          /* winter kills some crops */
+          var killed=0;
+          state.plots.forEach(function(p){
+            if(p.planted&&!p.ripe&&Math.random()<0.3){p.planted=false;p.seedId=null;p.growthDay=0;killed++}
+          });
+          if(killed>0) log("Winter frost! "+killed+" crop"+(killed>1?"s":"")+" didn't survive.");
+          else log("Winter has arrived. Your crops endure!");
+        } else {
+          log(SEASONS[state.season]+" begins!");
+        }
+      }
+
+      /* grow crops */
+      var ripened=0;
+      state.plots.forEach(function(p){
+        if(p.planted&&!p.ripe){
+          var growthBonus=state.season===1?1.5:state.season===3?0.5:1;
+          p.growthDay+=growthBonus;
+          var seed=getSeed(p.seedId);
+          if(seed&&p.growthDay>=seed.growDays){p.ripe=true;ripened++}
+        }
+      });
+      if(ripened>0) log(ripened+" crop"+(ripened>1?"s":"")+" ready to harvest!");
+      else if(state.day%28!==1) log("Day "+state.day+" — your crops are growing.");
+
+      updateHud();
+      drawGrid();
+    }
+
+    canvas.addEventListener("click",function(e){
+      var rect=canvas.getBoundingClientRect();
+      var scaleX=canvas.width/rect.width;
+      var scaleY=canvas.height/rect.height;
+      var mx=(e.clientX-rect.left)*scaleX;
+      var my=(e.clientY-rect.top)*scaleY;
+      var c=Math.floor(mx/CELL),r=Math.floor(my/CELL);
+      if(c<0||c>=COLS||r<0||r>=ROWS) return;
+      var idx=r*COLS+c;
+      var p=state.plots[idx];
+
+      if(p.ripe){
+        var seed=getSeed(p.seedId);
+        state.gold+=seed.sellPrice;
+        state.harvested++;
+        p.planted=false;p.seedId=null;p.growthDay=0;p.ripe=false;
+        log("Harvested "+seed.name+" for "+seed.sellPrice+" gold!");
+        updateHud();drawGrid();
+        return;
+      }
+
+      if(!p.planted){
+        var sel=SEEDS[state.selectedSeed];
+        if(state.gold>=sel.cost){
+          state.gold-=sel.cost;
+          p.planted=true;p.seedId=sel.id;p.growthDay=0;p.ripe=false;
+          log("Planted "+sel.name+".");
+          updateHud();drawGrid();
+        } else {
+          log("Not enough gold for "+sel.name+".");
+        }
+      }
+    });
+
+    document.getElementById("next-day-btn").addEventListener("click",nextDay);
+
+    /* Save / Load */
+    document.getElementById("save-btn").addEventListener("click",function(){
+      try{
+        var code=btoa(JSON.stringify({g:state.gold,d:state.day,s:state.season,h:state.harvested,p:state.plots.map(function(p){return p.planted?{i:p.seedId,g:p.growthDay,r:p.ripe?1:0}:0})}));
+        codeInput.value=code;
+        if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+        log("Save code copied! Share it to resume later.");
+      }catch(err){log("Error saving.")}
+    });
+
+    document.getElementById("load-btn").addEventListener("click",function(){
+      try{
+        var data=JSON.parse(atob(codeInput.value.trim()));
+        state.gold=data.g;state.day=data.d;state.season=data.s;state.harvested=data.h;
+        data.p.forEach(function(v,idx){
+          if(v===0){state.plots[idx]={planted:false,seedId:null,growthDay:0,ripe:false}}
+          else{state.plots[idx]={planted:true,seedId:v.i,growthDay:v.g,ripe:!!v.r}}
+        });
+        log("Farm loaded! Welcome back.");
+        updateHud();drawGrid();
+      }catch(err){log("Invalid save code. Try again.")}
+    });
+
+    /* Animation loop for sparkle */
+    function animate(){drawGrid();requestAnimationFrame(animate)}
+    updateHud();
+    animate();
+  })();
+  </script>
+</body>
+</html>
