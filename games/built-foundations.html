@@ -1,0 +1,2639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BUILT: Foundations — Ida Lurie</title>
+  <meta name="description" content="Build houses on plots of land, complete neighbor requests, and grow your construction empire one foundation at a time.">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .bf-wrap{display:flex;flex-direction:column;gap:1rem}
+    .bf-hud{display:flex;flex-wrap:wrap;gap:1rem 1.5rem;align-items:center;padding:.75rem 1rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius)}
+    .bf-hud__stat{display:flex;flex-direction:column;line-height:1.1}
+    .bf-hud__val{font-size:1.2rem;font-weight:700}
+    .bf-hud__val.is-debt{color:var(--color-incorrect)}
+    .bf-hud__label{font-size:.7rem;letter-spacing:.04em;text-transform:uppercase;color:var(--color-text-muted)}
+    .bf-hud__spacer{flex:1}
+    .bf-weather{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .55rem;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:99px;font-size:.78rem}
+    .bf-weather.is-storm{background:#2d3a52;color:#fff;border-color:#2d3a52}
+    .bf-weather.is-sale{background:#e0f6d6;color:#2c6a1e;border-color:#2c6a1e}
+    .bf-weather.is-cold{background:#d8e7f0;color:#1f4d6e;border-color:#1f4d6e}
+    .bf-weather.is-festival{background:#fff0d0;color:#8a5710;border-color:#8a5710}
+    .bf-stage{position:relative;display:flex;justify-content:center;background:linear-gradient(180deg,#bce8ff,#dff3ff 70%,#c5e8a5);border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;min-height:420px}
+    .bf-stage.is-summer{background:linear-gradient(180deg,#a7e1ff,#e6f6ff 60%,#a8d870)}
+    .bf-stage.is-fall{background:linear-gradient(180deg,#ffd58a,#ffe8c2 60%,#cbb16a)}
+    .bf-stage.is-winter{background:linear-gradient(180deg,#cfd9e6,#eef3fa 60%,#dfe6ee)}
+    .bf-canvas{image-rendering:auto;max-width:100%;touch-action:none;display:block}
+    .bf-panel{display:grid;grid-template-columns:1fr;gap:1rem}
+    @media(min-width:720px){.bf-panel{grid-template-columns:1.4fr 1fr}}
+    .bf-card{background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);padding:.85rem 1rem}
+    .bf-card h3{font-size:.85rem;margin-bottom:.5rem;letter-spacing:.02em;text-transform:uppercase;color:var(--color-text-muted)}
+    .bf-objective{font-size:.875rem;line-height:1.55}
+    .bf-objective ul{margin:.35rem 0 0 1.1rem}
+    .bf-objective li{margin-bottom:.15rem}
+    .bf-objective li.is-done{color:var(--color-correct);text-decoration:line-through;text-decoration-color:rgba(34,134,58,.5)}
+    .bf-tools{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.5rem}
+    .bf-tool{padding:.35rem .7rem;font-family:inherit;font-size:.78rem;border:1px solid var(--color-border);background:var(--color-bg-alt);color:var(--color-text);border-radius:6px;cursor:pointer;transition:all var(--transition)}
+    .bf-tool:hover{border-color:var(--color-accent)}
+    .bf-tool.is-active{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
+    .bf-palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:.4rem;max-height:300px;overflow-y:auto;padding-right:.25rem}
+    .bf-mat{display:flex;align-items:center;gap:.5rem;padding:.4rem .55rem;border:1px solid var(--color-border);border-radius:6px;background:var(--color-bg-alt);cursor:pointer;font-size:.78rem;text-align:left;transition:all var(--transition);font-family:inherit;color:var(--color-text);position:relative}
+    .bf-mat:hover{border-color:var(--color-accent)}
+    .bf-mat.is-selected{border-color:var(--color-accent);box-shadow:inset 0 0 0 1px var(--color-accent)}
+    .bf-mat:disabled{opacity:.45;cursor:not-allowed}
+    .bf-mat__swatch{width:22px;height:22px;border-radius:4px;border:1px solid rgba(0,0,0,.15);flex-shrink:0}
+    .bf-mat__info{flex:1;min-width:0;line-height:1.15}
+    .bf-mat__name{font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bf-mat__meta{font-size:.7rem;color:var(--color-text-muted);display:block}
+    .bf-mat__lock{position:absolute;top:2px;right:4px;font-size:.65rem;color:var(--color-text-muted)}
+    .bf-mat__stock{position:absolute;top:2px;right:4px;font-size:.7rem;font-weight:700;background:var(--color-accent);color:#fff;padding:0 5px;border-radius:99px;line-height:1.4}
+    .bf-mat__stock.is-low{background:#d6892c}
+    .bf-mat__stock.is-empty{background:var(--color-incorrect)}
+    .bf-actions{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem}
+    .bf-log{font-size:.78rem;line-height:1.55;color:var(--color-text-muted);min-height:2.2em;max-height:140px;overflow-y:auto}
+    .bf-log__entry{padding:.1rem 0}
+    .bf-overlay{position:absolute;inset:0;background:rgba(15,20,40,.7);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:10}
+    .bf-modal{background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:12px;padding:1.5rem 1.5rem 1.25rem;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+    .bf-modal h2{font-size:1.4rem;margin-bottom:.4rem;letter-spacing:-.02em}
+    .bf-modal p{font-size:.9rem;line-height:1.6;color:var(--color-text-muted);margin-bottom:.6rem}
+    .bf-modal__actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+    .bf-tut-bubble{position:absolute;left:50%;bottom:1rem;transform:translateX(-50%);max-width:90%;background:#fff;color:#1a1a1a;border:2px solid #3b5fc0;border-radius:14px;padding:.75rem 1rem;font-size:.85rem;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:5;display:flex;align-items:center;gap:.75rem}
+    .bf-tut-bubble__icon{font-size:1.5rem;flex-shrink:0}
+    .bf-tut-bubble__text{flex:1}
+    .bf-tut-bubble__next{flex-shrink:0;padding:.35rem .8rem;background:#3b5fc0;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.78rem;cursor:pointer;font-weight:600}
+    .bf-tut-bubble__next:hover{background:#2d4a9e}
+    .bf-builds-list{display:flex;flex-direction:column;gap:.4rem}
+    .bf-build-row{display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border:1px solid var(--color-border);border-radius:6px;background:var(--color-bg-alt);font-size:.78rem;flex-wrap:wrap}
+    .bf-build-row__name{flex:1;font-weight:600;min-width:90px}
+    .bf-build-row__meta{font-size:.7rem;color:var(--color-text-muted);flex-basis:100%}
+    .bf-build-row.is-warn{border-color:#d6892c}
+    .bf-build-row.is-active{box-shadow:inset 0 0 0 1px var(--color-accent)}
+    .bf-codes{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
+    .bf-codes input{flex:1;min-width:200px;padding:.5rem;font-family:inherit;font-size:.8125rem;border:1px solid var(--color-border);border-radius:4px;background:var(--color-bg);color:var(--color-text)}
+    .bf-shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.6rem;margin-top:.5rem}
+    .bf-shop-item{display:flex;flex-direction:column;gap:.25rem;padding:.6rem;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-alt);font-size:.78rem;text-align:left;position:relative}
+    .bf-shop-item__title{font-weight:700;font-size:.85rem;display:flex;align-items:center;gap:.4rem}
+    .bf-shop-item__desc{color:var(--color-text-muted);font-size:.72rem;line-height:1.4;min-height:2em}
+    .bf-shop-item__price{font-size:.75rem;color:var(--color-text);font-weight:600}
+    .bf-shop-item__row{display:flex;align-items:center;gap:.3rem;margin-top:.25rem}
+    .bf-shop-item button{padding:.3rem .55rem;font-family:inherit;font-size:.75rem;background:var(--color-accent);color:#fff;border:none;border-radius:5px;cursor:pointer;font-weight:600;flex:1}
+    .bf-shop-item button:disabled{background:var(--color-border);color:var(--color-text-muted);cursor:not-allowed}
+    .bf-shop-item__stock{font-size:.7rem;color:var(--color-text-muted);position:absolute;top:.5rem;right:.6rem}
+    .bf-tabs{display:flex;gap:.25rem;margin-bottom:.5rem;flex-wrap:wrap}
+    .bf-tab{padding:.3rem .65rem;font-size:.75rem;font-family:inherit;border:1px solid var(--color-border);border-radius:5px;background:var(--color-bg-alt);color:var(--color-text);cursor:pointer}
+    .bf-tab.is-active{background:var(--color-text);color:var(--color-bg)}
+    .bf-instructions{font-size:.78rem;color:var(--color-text-muted);line-height:1.55;margin-bottom:.5rem}
+    .bf-pill{display:inline-block;padding:.1rem .45rem;font-size:.68rem;background:var(--color-bg);border:1px solid var(--color-border);border-radius:99px;color:var(--color-text-muted);margin-left:.25rem}
+    .bf-pill.is-warn{background:#fff4e0;border-color:#d6892c;color:#8a5710}
+    .bf-pill.is-bad{background:var(--color-incorrect-bg);border-color:var(--color-incorrect);color:var(--color-incorrect)}
+    .bf-pill.is-good{background:rgba(34,134,58,.1);border-color:var(--color-correct);color:var(--color-correct)}
+    .bf-pill.is-style{background:#e8e6f7;border-color:#6b5dc0;color:#3a2c80}
+    .bf-toast{position:absolute;top:.75rem;left:50%;transform:translateX(-50%);background:rgba(20,28,48,.92);color:#fff;padding:.5rem .9rem;border-radius:8px;font-size:.8rem;z-index:6;opacity:0;transition:opacity .2s;pointer-events:none;max-width:80%;text-align:center}
+    .bf-toast.is-show{opacity:1}
+    .bf-tooltip{position:absolute;pointer-events:none;background:rgba(20,28,48,.95);color:#fff;padding:.4rem .55rem;border-radius:6px;font-size:.72rem;line-height:1.4;z-index:7;opacity:0;transition:opacity .12s;max-width:200px;transform:translate(8px,8px)}
+    .bf-tooltip.is-show{opacity:1}
+    .bf-tooltip__title{font-weight:700;display:block}
+    .bf-tooltip__row{color:#cbd2e0}
+    .bf-portfolio-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.5rem}
+    .bf-portfolio-item{padding:.5rem;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg-alt);font-size:.78rem;line-height:1.4}
+    .bf-portfolio-item__title{font-weight:700;font-size:.82rem}
+    .bf-portfolio-item__stars{color:#d6a82c;font-size:.85rem}
+    .bf-achv-list{display:flex;flex-direction:column;gap:.3rem}
+    .bf-achv{display:flex;align-items:center;gap:.5rem;padding:.35rem .55rem;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:6px;font-size:.78rem}
+    .bf-achv.is-unlocked{border-color:var(--color-correct);background:rgba(34,134,58,.07)}
+    .bf-achv__icon{font-size:1.1rem}
+    .bf-town-nav{display:flex;gap:.3rem;justify-content:center;margin-top:.4rem}
+    .bf-town-nav button{padding:.25rem .55rem;border:1px solid var(--color-border);background:var(--color-bg-alt);color:var(--color-text);border-radius:5px;font-family:inherit;font-size:.75rem;cursor:pointer}
+    .bf-town-nav button:disabled{opacity:.4;cursor:not-allowed}
+    @media (prefers-color-scheme: dark){
+      .bf-stage{background:linear-gradient(180deg,#1a2b3e,#243a52 70%,#2a4a2a)}
+      .bf-stage.is-summer{background:linear-gradient(180deg,#1a3850,#2a4a5a 60%,#365a36)}
+      .bf-stage.is-fall{background:linear-gradient(180deg,#3e2a18,#4a3622 60%,#604c2a)}
+      .bf-stage.is-winter{background:linear-gradient(180deg,#1f2730,#2a3340 60%,#3a4250)}
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="../index.html" class="site-header__logo" aria-label="Ida Lurie — Home">Ida Lurie</a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="Toggle navigation">
+        <span class="nav-toggle__icon" aria-hidden="true"></span>
+      </button>
+      <nav class="site-nav" id="main-nav" aria-label="Main navigation">
+        <ul class="site-nav__list">
+          <li class="site-nav__item"><a href="../index.html" class="site-nav__link">Home</a></li>
+          <li class="site-nav__item"><a href="../about.html" class="site-nav__link">About</a></li>
+          <li class="site-nav__item"><a href="../games.html" class="site-nav__link">Games</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <a href="../games.html" class="game-page__back">&larr; All Games</a>
+      <h1 class="game-page__title">BUILT: Foundations</h1>
+      <p class="game-page__description">An isometric construction sim. Build houses on empty plots, satisfy your neighbors' wish-lists, and grow a construction empire. Stock your inventory at the Hardware Store, watch the weather, and decorate the homes you keep.</p>
+
+      <div class="game-area">
+        <div class="bf-wrap">
+
+          <div class="bf-hud" id="hud">
+            <div class="bf-hud__stat"><span class="bf-hud__val" id="hud-points">100</span><span class="bf-hud__label">Points</span></div>
+            <div class="bf-hud__stat"><span class="bf-hud__val" id="hud-day">Day 1</span><span class="bf-hud__label" id="hud-season">Spring</span></div>
+            <div class="bf-hud__stat"><span class="bf-hud__val" id="hud-builds">0 / 3</span><span class="bf-hud__label">Active</span></div>
+            <div class="bf-hud__stat"><span class="bf-hud__val" id="hud-owned">0</span><span class="bf-hud__label">Owned</span></div>
+            <span class="bf-weather" id="hud-weather">&#x2600;&#xFE0F; Clear</span>
+            <div class="bf-hud__spacer"></div>
+            <button class="btn btn--small btn--secondary" id="btn-town" type="button">Town</button>
+            <button class="btn btn--small btn--secondary" id="btn-portfolio" type="button">Portfolio</button>
+            <button class="btn btn--small" id="btn-next-day" type="button">End Day</button>
+          </div>
+
+          <div class="bf-stage" id="stage">
+            <canvas class="bf-canvas" id="cv" width="800" height="500" aria-label="Game stage"></canvas>
+            <div class="bf-toast" id="toast"></div>
+            <div class="bf-tooltip" id="tooltip"></div>
+            <div class="bf-tut-bubble" id="tut" style="display:none">
+              <div class="bf-tut-bubble__icon">&#x1F477;</div>
+              <div class="bf-tut-bubble__text" id="tut-text"></div>
+              <button class="bf-tut-bubble__next" id="tut-next" type="button">Next</button>
+            </div>
+          </div>
+
+          <div class="bf-panel" id="panel-area">
+            <div class="bf-card" id="left-card">
+              <div id="left-content"></div>
+            </div>
+            <div class="bf-card" id="right-card">
+              <div id="right-content"></div>
+            </div>
+          </div>
+
+          <div class="bf-codes">
+            <button class="btn btn--small btn--secondary" id="save-btn" type="button">Save Code</button>
+            <input type="text" id="code-input" placeholder="Paste save code..." aria-label="Save code">
+            <button class="btn btn--small btn--secondary" id="load-btn" type="button">Load</button>
+            <button class="btn btn--small btn--secondary" id="sound-btn" type="button">Sound: On</button>
+            <button class="btn btn--small btn--secondary" id="reset-btn" type="button">Reset Game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span class="footer-year"></span> Ida Lurie</p>
+    </div>
+  </footer>
+
+  <script src="../assets/script.js" defer></script>
+  <script>
+  (function(){
+    "use strict";
+
+    /* ============================================================
+       BUILT: FOUNDATIONS  — Full Edition
+       Features: inventory, undo, sound, tooltips, weather,
+       neighbor personalities, interior design, drivable town,
+       portfolio gallery, and achievements.
+       ============================================================ */
+
+    var canvas = document.getElementById("cv");
+    var ctx = canvas.getContext("2d");
+    var TOAST = document.getElementById("toast");
+    var TOOLTIP = document.getElementById("tooltip");
+    var STAGE = document.getElementById("stage");
+
+    var SEASONS = ["Spring","Summer","Fall","Winter"];
+    var SEASON_LEN = 7;
+
+    /* ============================================================
+       SOUND
+       ============================================================ */
+    var audioCtx = null;
+    var soundOn = true;
+    function audio(){
+      if(!soundOn) return null;
+      try{
+        if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+        return audioCtx;
+      } catch(e){return null}
+    }
+    function beep(freq, dur, type, vol){
+      var a = audio();
+      if(!a) return;
+      try{
+        var o = a.createOscillator();
+        var g = a.createGain();
+        o.type = type||"sine";
+        o.frequency.value = freq;
+        var v = vol||0.05;
+        g.gain.value = v;
+        g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime+dur);
+        o.connect(g);g.connect(a.destination);
+        o.start();o.stop(a.currentTime+dur);
+      } catch(e){}
+    }
+    function sfx(kind){
+      if(!soundOn) return;
+      if(kind==="place")    { beep(640,0.06,"square",0.04); }
+      else if(kind==="break"){ beep(220,0.08,"triangle",0.05); }
+      else if(kind==="buy") { beep(880,0.06,"sine",0.05); setTimeout(function(){beep(1100,0.08,"sine",0.04)},80); }
+      else if(kind==="ok")  { beep(820,0.07,"sine",0.05); setTimeout(function(){beep(1040,0.08,"sine",0.05)},90); setTimeout(function(){beep(1320,0.12,"sine",0.05)},190); }
+      else if(kind==="bad") { beep(160,0.18,"sawtooth",0.05); }
+      else if(kind==="click"){beep(540,0.03,"square",0.03);}
+      else if(kind==="undo"){ beep(420,0.06,"triangle",0.04); }
+    }
+    document.getElementById("sound-btn").addEventListener("click", function(){
+      soundOn = !soundOn;
+      this.textContent = soundOn ? "Sound: On" : "Sound: Off";
+      if(soundOn) sfx("click");
+    });
+
+    /* ============================================================
+       MATERIALS
+       ============================================================ */
+    var MATS = [
+      { id:"wood-foundation",  name:"Wood Foundation", cat:"foundation", cost:5,  unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#a07043", color2:"#b88452", desc:"Basic floor tile." },
+      { id:"stone-foundation", name:"Stone Foundation",cat:"foundation", cost:12, unlock:120,  seasons:["Summer","Fall"],                   color:"#8a8a8a", color2:"#a8a8a8", desc:"Solid stone slab." },
+      { id:"wood-wall",        name:"Wood Wall",       cat:"wall",       cost:6,  unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#9c6b3d", color2:"#bd8453", desc:"Classic timber wall." },
+      { id:"brick-wall",       name:"Brick Wall",      cat:"wall",       cost:10, unlock:60,   seasons:["Summer","Fall"],                   color:"#b04a30", color2:"#cf5a3e", desc:"Sturdy red brick." },
+      { id:"stone-wall",       name:"Stone Wall",      cat:"wall",       cost:14, unlock:200,  seasons:["Summer","Fall"],                   color:"#7d7d7d", color2:"#9b9b9b", desc:"Cool stone masonry." },
+      { id:"log-wall",         name:"Log Wall",        cat:"wall",       cost:9,  unlock:80,   seasons:["Fall","Winter"],                   color:"#7a4a26", color2:"#a06738", desc:"Hewn log construction." },
+      { id:"wood-door",        name:"Wood Door",       cat:"door",       cost:14, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#6b3a1a", color2:"#8a4d24", desc:"A door has to go somewhere." },
+      { id:"red-door",         name:"Red Door",        cat:"door",       cost:20, unlock:90,   seasons:["Spring","Fall"],                   color:"#a02828", color2:"#c83434", desc:"A pop of color." },
+      { id:"wood-window",      name:"Wood Window",     cat:"window",     cost:10, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#cfe3ee", color2:"#a9d2e8", desc:"Lets the light in." },
+      { id:"big-window",       name:"Picture Window",  cat:"window",     cost:18, unlock:140,  seasons:["Spring","Summer"],                 color:"#bfe5f5", color2:"#90c9ec", desc:"A wider view." },
+      { id:"glass-wall",       name:"Glass Panel",     cat:"window",     cost:24, unlock:260,  seasons:["Winter"],                          color:"#dff5ff", color2:"#a8d8f0", desc:"Wall-sized glass." },
+      { id:"straw-roof",       name:"Straw Roof",      cat:"roof",       cost:5,  unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#c79a3e", color2:"#dfb056", desc:"Cheap and cheerful." },
+      { id:"shingle-roof",     name:"Shingle Roof",    cat:"roof",       cost:11, unlock:50,   seasons:["Summer","Fall"],                   color:"#3a4a5a", color2:"#52647a", desc:"Slate-gray shingles." },
+      { id:"tile-roof",        name:"Clay Tile Roof",  cat:"roof",       cost:18, unlock:180,  seasons:["Summer"],                          color:"#b05630", color2:"#cf6a42", desc:"Mediterranean style." },
+      { id:"snow-roof",        name:"Pine Roof",       cat:"roof",       cost:14, unlock:100,  seasons:["Winter","Fall"],                   color:"#2f4f3f", color2:"#446a55", desc:"Dark green pine shake." },
+      { id:"flower-bed",       name:"Flower Bed",      cat:"decor",      cost:6,  unlock:30,   seasons:["Spring","Summer"],                 color:"#5da84e", color2:"#ff69b4", desc:"Adds curb appeal." },
+      { id:"shrub",            name:"Hedge Shrub",     cat:"decor",      cost:8,  unlock:60,   seasons:["Spring","Summer","Fall"],          color:"#3a7a3a", color2:"#56a456", desc:"Tidy greenery." },
+      { id:"chimney",          name:"Chimney",         cat:"decor",      cost:22, unlock:120,  seasons:["Fall","Winter"],                   color:"#7a3a2a", color2:"#a04a36", desc:"Stack on the roof." },
+      { id:"path",             name:"Stone Path",      cat:"decor",      cost:3,  unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#9a9486", color2:"#b6ad9b", desc:"Walkway tile." },
+      /* Furniture (interior only) */
+      { id:"furn-bed",         name:"Bed",             cat:"furn", cost:30, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#6b8de6", color2:"#fff",     desc:"Comfort +5", comfort:5 },
+      { id:"furn-sofa",        name:"Sofa",            cat:"furn", cost:25, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#c87a52", color2:"#e0a070", desc:"Comfort +4", comfort:4 },
+      { id:"furn-table",       name:"Table",           cat:"furn", cost:18, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#7a4a26", color2:"#9c6b3d", desc:"Comfort +2", comfort:2 },
+      { id:"furn-chair",       name:"Chair",           cat:"furn", cost:10, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#9c6b3d", color2:"#bd8453", desc:"Comfort +1", comfort:1 },
+      { id:"furn-plant",       name:"Potted Plant",    cat:"furn", cost:8,  unlock:0,    seasons:["Spring","Summer","Fall"],          color:"#3a7a3a", color2:"#56a456", desc:"Comfort +1", comfort:1 },
+      { id:"furn-lamp",        name:"Floor Lamp",      cat:"furn", cost:12, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#daa520", color2:"#fff7c8", desc:"Comfort +2", comfort:2 },
+      { id:"furn-rug",         name:"Area Rug",        cat:"furn", cost:15, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#b04a30", color2:"#e8c54a", desc:"Comfort +2", comfort:2 },
+      { id:"furn-painting",    name:"Painting",        cat:"furn", cost:20, unlock:0,    seasons:["Spring","Summer","Fall","Winter"], color:"#3a4a5a", color2:"#daa520", desc:"Comfort +3", comfort:3 }
+    ];
+
+    function matById(id){for(var i=0;i<MATS.length;i++) if(MATS[i].id===id) return MATS[i];return null}
+
+    /* Tutorial starter inventory */
+    function starterInventory(){
+      return {
+        "wood-foundation": 20,
+        "wood-wall": 14,
+        "wood-door": 1,
+        "wood-window": 2,
+        "straw-roof": 10,
+        "path": 4
+      };
+    }
+
+    /* ============================================================
+       PLOTS, NAMES, STYLES, PERSONALITIES
+       ============================================================ */
+    var PLOT_TYPES = [
+      { id:"small",  name:"Small lot",  cols:4, rows:4, base:60,  unlock:0 },
+      { id:"medium", name:"Medium lot", cols:6, rows:5, base:140, unlock:80 },
+      { id:"large",  name:"Large lot",  cols:8, rows:6, base:280, unlock:240 },
+      { id:"manor",  name:"Manor lot",  cols:10,rows:7, base:520, unlock:600 }
+    ];
+    function plotById(id){for(var i=0;i<PLOT_TYPES.length;i++) if(PLOT_TYPES[i].id===id) return PLOT_TYPES[i];return PLOT_TYPES[0]}
+
+    var NEIGHBOR_NAMES = ["Marlowe","Penny","Sasha","Otis","Iris","Ramone","June","Hugo","Eleanor","Cal","Theo","Wren","Bea","Felix","Nora","Arlo","Vivi","Dax"];
+    var STYLE_TEMPLATES = [
+      { name:"Cozy Cottage",   wall:"wood-wall",  roof:"straw-roof",   doors:1, windows:2, decorMin:1 },
+      { name:"Brick Bungalow", wall:"brick-wall", roof:"shingle-roof", doors:1, windows:3, decorMin:1 },
+      { name:"Log Cabin",      wall:"log-wall",   roof:"snow-roof",    doors:1, windows:2, decorMin:1, mustHave:["chimney"] },
+      { name:"Modern Loft",    wall:"wood-wall",  roof:"shingle-roof", doors:1, windows:4, decorMin:0, anyWindow:true },
+      { name:"Stone Manor",    wall:"stone-wall", roof:"tile-roof",    doors:2, windows:5, decorMin:2 },
+      { name:"Garden Cottage", wall:"wood-wall",  roof:"shingle-roof", doors:1, windows:3, decorMin:3, mustHave:["flower-bed"] },
+      { name:"Glass House",    wall:"wood-wall",  roof:"shingle-roof", doors:1, windows:5, decorMin:0, mustHave:["glass-wall"] }
+    ];
+
+    /* personality: stricter / kinder / patient / impatient */
+    var PERSONALITIES = [
+      { id:"standard",  name:"Standard",  rewardMul:1.0, cancelDays:5, strictMul:1.0, weight:5 },
+      { id:"generous",  name:"Generous",  rewardMul:1.3, cancelDays:5, strictMul:1.0, weight:2 },
+      { id:"patient",   name:"Patient",   rewardMul:1.0, cancelDays:8, strictMul:1.0, weight:2 },
+      { id:"impatient", name:"Impatient", rewardMul:1.15,cancelDays:3, strictMul:1.0, weight:2 },
+      { id:"picky",     name:"Picky",     rewardMul:1.4, cancelDays:5, strictMul:1.25,weight:2 }
+    ];
+    function rollPersonality(){
+      var total=0; PERSONALITIES.forEach(function(p){total+=p.weight});
+      var r = Math.random()*total;
+      for(var i=0;i<PERSONALITIES.length;i++){
+        r -= PERSONALITIES[i].weight;
+        if(r<=0) return PERSONALITIES[i];
+      }
+      return PERSONALITIES[0];
+    }
+    function personById(id){for(var i=0;i<PERSONALITIES.length;i++) if(PERSONALITIES[i].id===id) return PERSONALITIES[i];return PERSONALITIES[0]}
+
+    /* ============================================================
+       WEATHER
+       ============================================================ */
+    var WEATHERS = [
+      { id:"clear",    name:"Clear",       icon:"☀️", desc:"Nothing unusual." },
+      { id:"sale",     name:"Sale Day",    icon:"💸", desc:"All materials -30%.", priceMul:0.7 },
+      { id:"storm",    name:"Storm",       icon:"⛈️",  desc:"Decor placement blocked." },
+      { id:"cold",     name:"Cold Snap",   icon:"❄️", desc:"Wood materials +25%.", woodSurcharge:1.25 },
+      { id:"festival", name:"Festival",    icon:"🎉", desc:"Build rewards +30% today.", rewardMul:1.3 }
+    ];
+    function weatherById(id){for(var i=0;i<WEATHERS.length;i++) if(WEATHERS[i].id===id) return WEATHERS[i];return WEATHERS[0]}
+
+    /* ============================================================
+       ACHIEVEMENTS
+       ============================================================ */
+    var ACHIEVEMENTS = [
+      { id:"first-home",  icon:"🏠", name:"First Home",   desc:"Finish your tutorial build." },
+      { id:"five-builds", icon:"📐", name:"Five and Counting", desc:"Complete 5 client builds." },
+      { id:"styles-three",icon:"🎨", name:"Style Maven",  desc:"Complete 3 different styles." },
+      { id:"driver",      icon:"🚗", name:"On the Road",  desc:"Buy a car." },
+      { id:"biz-open",    icon:"💼", name:"Designer",     desc:"Open your design business." },
+      { id:"first-decor", icon:"🛋️", name:"Homemaker", desc:"Decorate your first interior." },
+      { id:"brick-master",icon:"🧱", name:"Bricklayer",   desc:"Place 50 brick walls." },
+      { id:"manor-lord",  icon:"🏰", name:"Manor Lord",   desc:"Finish a manor build." },
+      { id:"perfect-five",icon:"⭐",       name:"Five-Star",    desc:"Earn 5 three-star builds." }
+    ];
+
+    /* ============================================================
+       GAME STATE
+       ============================================================ */
+    var state = {
+      points: 100,
+      day: 1,
+      season: 0,
+      view: "title",
+      buildIndex: -1,
+      interiorIndex: -1,
+      hasCar: false,
+      hasBusiness: false,
+      tutorialStep: 0,
+      tutorialDone: false,
+      ownedHouses: [],
+      builds: [],
+      townPlots: [],
+      townScroll: 0,
+      log: [],
+      inventory: {},
+      portfolio: [],
+      history: [],     /* per-build undo stack: [{r,c,before,placedMatId}] */
+      weather: "clear",
+      weatherDays: 0,
+      achievements: {},
+      brickPlaced: 0,
+      version: 2
+    };
+
+    function makeEmptyCells(rows, cols){
+      var a=[];
+      for(var r=0;r<rows;r++){
+        var row=[];
+        for(var c=0;c<cols;c++) row.push({foundation:null,wall:null,opening:null,roof:null,decor:null});
+        a.push(row);
+      }
+      return a;
+    }
+    function cloneCell(c){return {foundation:c.foundation,wall:c.wall,opening:c.opening,roof:c.roof,decor:c.decor};}
+
+    /* ============================================================
+       BUILDS / TOWN
+       ============================================================ */
+    var buildCounter = 1;
+    function newBuild(plotType, isTutorial, ownerName){
+      var p = plotById(plotType);
+      var tpl = STYLE_TEMPLATES[Math.floor(Math.random()*STYLE_TEMPLATES.length)];
+      if(isTutorial){
+        tpl = { name:"Starter Home", wall:"wood-wall", roof:"straw-roof", doors:1, windows:2, decorMin:0 };
+      }
+      var person = isTutorial ? personById("standard") : rollPersonality();
+      var sizeMul = (p.cols*p.rows) / 16;
+      var reqDoors = Math.max(1, Math.round(tpl.doors*Math.max(1,sizeMul*0.6)));
+      var reqWindows = Math.max(2, Math.round(tpl.windows*Math.max(1,sizeMul*0.65)));
+      var reqDecor = isTutorial ? 0 : Math.max(0, Math.round((tpl.decorMin||0)*Math.max(1,sizeMul*0.5)));
+      /* picky tweaks objectives */
+      if(person.id==="picky"){
+        reqWindows = Math.ceil(reqWindows*1.25);
+        reqDecor = Math.ceil((reqDecor||1)*1.5);
+      }
+      var reward = p.base + reqWindows*6 + reqDoors*8 + reqDecor*5;
+      reward = Math.round(reward * person.rewardMul);
+      if(isTutorial) reward = 60;
+      return {
+        id: "b"+(buildCounter++),
+        owner: ownerName || "You",
+        plotType: plotType,
+        cols: p.cols, rows: p.rows,
+        style: tpl.name,
+        personality: person.id,
+        req: {
+          wall: tpl.wall,
+          roof: tpl.roof,
+          doors: reqDoors,
+          windows: reqWindows,
+          decorMin: reqDecor,
+          mustHave: tpl.mustHave || [],
+          anyWindow: !!tpl.anyWindow
+        },
+        reward: reward,
+        startDay: state.day,
+        startSeason: state.season,
+        lastTouched: state.day,
+        cells: makeEmptyCells(p.rows, p.cols),
+        tutorial: !!isTutorial,
+        done: false,
+        furniture: {}, /* used after move-in */
+        history: []    /* undo per build */
+      };
+    }
+
+    function refillTown(){
+      var max = state.hasCar ? 6 : 4;
+      while(state.townPlots.length < max){
+        var avail = PLOT_TYPES.filter(function(p){return state.points >= p.unlock || p.unlock<=120});
+        var pick = avail[Math.floor(Math.random()*avail.length)];
+        if(state.hasCar && Math.random()<0.35) {
+          var pool = PLOT_TYPES.filter(function(p){return state.points>=p.unlock});
+          if(pool.length) pick = pool[pool.length-1];
+        }
+        var owner = NEIGHBOR_NAMES[Math.floor(Math.random()*NEIGHBOR_NAMES.length)];
+        state.townPlots.push({plotType:pick.id, owner:owner});
+      }
+    }
+
+    /* ============================================================
+       LOGGING / TOAST / TOOLTIP
+       ============================================================ */
+    function logMsg(s){
+      state.log.unshift("Day "+state.day+": "+s);
+      if(state.log.length>40) state.log.pop();
+    }
+    function toast(s, ms){
+      TOAST.textContent = s;
+      TOAST.classList.add("is-show");
+      clearTimeout(toast._t);
+      toast._t = setTimeout(function(){TOAST.classList.remove("is-show")}, ms||1800);
+    }
+    function showTooltip(html, x, y){
+      TOOLTIP.innerHTML = html;
+      TOOLTIP.style.left = x+"px";
+      TOOLTIP.style.top = y+"px";
+      TOOLTIP.classList.add("is-show");
+    }
+    function hideTooltip(){TOOLTIP.classList.remove("is-show")}
+
+    /* ============================================================
+       DRAWING
+       ============================================================ */
+    function drawClouds(t){
+      var n=4;
+      for(var i=0;i<n;i++){
+        var cx = ((i*220 + t*0.02) % (canvas.width+200)) - 100;
+        var cy = 30 + (i%2)*20;
+        drawCloud(cx, cy, 0.7 + (i%3)*0.15);
+      }
+    }
+    function drawCloud(x,y,s){
+      ctx.fillStyle="rgba(255,255,255,0.85)";
+      ctx.beginPath();
+      ctx.arc(x,y,18*s,0,Math.PI*2);
+      ctx.arc(x+18*s,y-6*s,16*s,0,Math.PI*2);
+      ctx.arc(x+34*s,y,18*s,0,Math.PI*2);
+      ctx.arc(x+20*s,y+8*s,14*s,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    function shadeRect(x,y,w,h,c1,c2){
+      var g = ctx.createLinearGradient(x,y,x,y+h);
+      g.addColorStop(0,c1);
+      g.addColorStop(1,c2);
+      ctx.fillStyle=g;
+      ctx.fillRect(x,y,w,h);
+    }
+
+    /* ---------- Color shading helpers ---------- */
+    function clamp255(n){return Math.max(0,Math.min(255,Math.round(n)))}
+    function parseHex(hex){
+      if(!hex || hex.charAt(0)!=='#') return null;
+      var h = hex.substring(1);
+      if(h.length===3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+      var n = parseInt(h,16);
+      return [(n>>16)&0xff, (n>>8)&0xff, n&0xff];
+    }
+    function shadeColor(hex, percent){
+      var rgb = parseHex(hex);
+      if(!rgb) return hex;
+      var f = 1 + percent;
+      var r = clamp255(rgb[0]*f), g = clamp255(rgb[1]*f), b = clamp255(rgb[2]*f);
+      return '#'+('000000'+((r<<16)|(g<<8)|b).toString(16)).slice(-6);
+    }
+    function darken(c,a){return shadeColor(c,-a)}
+    function lighten(c,a){return shadeColor(c,a)}
+
+    /* ============================================================
+       ISO 3D RENDERING
+       ============================================================ */
+    /* iso(c, r) returns the screen position of the TOP vertex of cell (c, r):
+       x = ox + (c - r) * TW/2
+       y = oy + (c + r) * TH/2
+       The four corners of cell (c, r):
+         top:    iso(c, r)
+         right:  iso(c+1, r)
+         bottom: iso(c+1, r+1)
+         left:   iso(c, r+1)
+    */
+    function makeIsoGeom(slotX, slotY, slotW, slotH, cols, rows){
+      var minDim = Math.min(cols, rows);
+      var bboxW1 = (cols+rows) * 18;
+      var bboxH1 = (cols+rows) * 9 + 26 + minDim * 18 * 0.7;
+      var scale = Math.min((slotW-12) / bboxW1, (slotH-18) / bboxH1);
+      scale = Math.max(0.18, scale);
+      var TW = 36 * scale, TH = 18 * scale, WH = 26 * scale;
+      var peakRise = minDim * TH * 0.7;
+      var ox = slotX + slotW/2 - (cols - rows) * TW/4;
+      var oy = slotY + slotH/2 + (WH + peakRise) / 2 - (cols + rows) * TH / 4;
+      return {ox:ox, oy:oy, TW:TW, TH:TH, WH:WH, scale:scale, cols:cols, rows:rows};
+    }
+
+    function isoPt(g, c, r){return {x: g.ox + (c-r)*g.TW/2, y: g.oy + (c+r)*g.TH/2}}
+
+    function isoHitTest(g, sx, sy){
+      if(!g) return null;
+      for(var s = g.rows + g.cols - 2; s >= 0; s--){
+        for(var r = 0; r <= s; r++){
+          var c = s - r;
+          if(r >= g.rows || c >= g.cols) continue;
+          var cx = g.ox + (c - r) * g.TW/2;
+          var cy = g.oy + (c + r) * g.TH/2 + g.TH/2;
+          var dx = sx - cx, dy = sy - cy;
+          if(Math.abs(dx)/(g.TW/2) + Math.abs(dy)/(g.TH/2) <= 1){
+            return {r:r, c:c};
+          }
+        }
+      }
+      return null;
+    }
+
+    function strokeDiamond(g, c, r, color, lw){
+      var top = isoPt(g, c, r);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lw || 2;
+      ctx.beginPath();
+      ctx.moveTo(top.x, top.y);
+      ctx.lineTo(top.x + g.TW/2, top.y + g.TH/2);
+      ctx.lineTo(top.x, top.y + g.TH);
+      ctx.lineTo(top.x - g.TW/2, top.y + g.TH/2);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    /* Draws the whole plot in iso 3D using a geometry object */
+    function drawPlotIsoG(g, build){
+      var cols = g.cols, rows = g.rows;
+      var TW = g.TW, TH = g.TH, WH = g.WH;
+      function iso(c, r){return isoPt(g, c, r)}
+
+      /* Grass surround (outset diamond) */
+      var pad = 0.45;
+      var gN = iso(-pad, -pad), gE = iso(cols+pad, -pad), gS = iso(cols+pad, rows+pad), gW = iso(-pad, rows+pad);
+      ctx.fillStyle = "#79a04b";
+      ctx.beginPath();
+      ctx.moveTo(gN.x, gN.y); ctx.lineTo(gE.x, gE.y); ctx.lineTo(gS.x, gS.y); ctx.lineTo(gW.x, gW.y);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#5a8a3a"; ctx.lineWidth = 1; ctx.stroke();
+
+      /* Dirt plot */
+      var dN = iso(0, 0), dE = iso(cols, 0), dS = iso(cols, rows), dW = iso(0, rows);
+      var grad = ctx.createLinearGradient(dN.x, dN.y, dS.x, dS.y);
+      grad.addColorStop(0, "#b89368");
+      grad.addColorStop(1, "#8a6438");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(dN.x, dN.y); ctx.lineTo(dE.x, dE.y); ctx.lineTo(dS.x, dS.y); ctx.lineTo(dW.x, dW.y);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.stroke();
+
+      /* Grid lines */
+      ctx.strokeStyle = "rgba(0,0,0,0.13)"; ctx.lineWidth = 1;
+      for(var i=0;i<=cols;i++){
+        var a = iso(i, 0), b = iso(i, rows);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+      for(var j=0;j<=rows;j++){
+        var a = iso(0, j), b = iso(cols, j);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      }
+
+      if(!build) return;
+
+      /* 1) Foundations */
+      for(var r=0;r<rows;r++){
+        for(var c=0;c<cols;c++){
+          var cell = build.cells[r][c];
+          if(cell.foundation){
+            drawFoundationIso(iso(c,r), TW, TH, matById(cell.foundation));
+          }
+        }
+      }
+      /* 2) Paths first (flat decor) */
+      for(var r=0;r<rows;r++){
+        for(var c=0;c<cols;c++){
+          var cell = build.cells[r][c];
+          if(cell.decor==="path"){drawPathIso(iso(c,r), TW, TH);}
+        }
+      }
+      /* 3) Walls + openings + tall decor in back-to-front order */
+      for(var sd=0;sd<=rows+cols-2;sd++){
+        for(var r=0;r<=sd;r++){
+          var c = sd - r;
+          if(r>=rows || c>=cols) continue;
+          var cell = build.cells[r][c];
+          if(cell.wall){
+            drawWallIso(iso(c,r), TW, TH, WH, matById(cell.wall));
+            if(cell.opening){
+              drawOpeningIso(iso(c,r), TW, TH, WH, matById(cell.opening), build, r, c);
+            }
+          }
+          if(cell.decor && cell.decor!=="path"){
+            drawDecorIso(iso(c,r), TW, TH, WH, cell.decor);
+          }
+        }
+      }
+      /* 4) Pyramid hip roof over the build's bounding box */
+      drawRoofPyramidIso(iso, build, TW, TH, WH);
+    }
+
+    /* Backwards-compat wrapper: takes a slot rect + build, computes geom and draws.
+       Returns the geometry so the caller can use it for hit-testing. */
+    function drawPlotIso(slotX, slotY, cols, rows, scaleOrSlot, build){
+      var g;
+      /* If scaleOrSlot is an object {w, h} use as slot dims. Otherwise treat as legacy
+         and synthesize a slot. Default to 1.0 multiplier of base iso. */
+      if(typeof scaleOrSlot === 'object' && scaleOrSlot){
+        g = makeIsoGeom(slotX, slotY, scaleOrSlot.w, scaleOrSlot.h, cols, rows);
+      } else {
+        var scale = scaleOrSlot || 1;
+        g = {
+          ox: slotX, oy: slotY,
+          TW: 36*scale, TH: 18*scale, WH: 26*scale,
+          scale: scale, cols: cols, rows: rows
+        };
+      }
+      drawPlotIsoG(g, build);
+      return g;
+    }
+
+    /* ---- Foundation: flat diamond ---- */
+    function drawFoundationIso(p, TW, TH, m){
+      var grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y+TH);
+      grad.addColorStop(0, m.color2);
+      grad.addColorStop(1, m.color);
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + TW/2, p.y + TH/2);
+      ctx.lineTo(p.x, p.y + TH);
+      ctx.lineTo(p.x - TW/2, p.y + TH/2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.22)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    /* ---- Path overlay on top of foundation ---- */
+    function drawPathIso(p, TW, TH){
+      ctx.fillStyle = "#b6ad9b";
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y + TH*0.15);
+      ctx.lineTo(p.x + TW*0.42, p.y + TH/2);
+      ctx.lineTo(p.x, p.y + TH*0.85);
+      ctx.lineTo(p.x - TW*0.42, p.y + TH/2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.25)";
+      ctx.stroke();
+      /* Stone speckles */
+      ctx.fillStyle = "#8a8478";
+      ctx.beginPath(); ctx.arc(p.x - TW*0.15, p.y + TH*0.4, TW*0.06, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x + TW*0.12, p.y + TH*0.55, TW*0.07, 0, Math.PI*2); ctx.fill();
+    }
+
+    /* ---- Wall: 3D block with three visible faces and material texture ---- */
+    function drawWallIso(p, TW, TH, WH, m){
+      var hW = TW/2, hH = TH/2;
+      var tB = {x:p.x,    y:p.y};
+      var rB = {x:p.x+hW, y:p.y+hH};
+      var bB = {x:p.x,    y:p.y+TH};
+      var lB = {x:p.x-hW, y:p.y+hH};
+      var tT = {x:tB.x, y:tB.y-WH};
+      var rT = {x:rB.x, y:rB.y-WH};
+      var bT = {x:bB.x, y:bB.y-WH};
+      var lT = {x:lB.x, y:lB.y-WH};
+
+      var seColor = darken(m.color, 0.22);
+      var swColor = m.color;
+      var topColor = lighten(m.color2, 0.05);
+
+      /* SE face */
+      ctx.fillStyle = seColor;
+      ctx.beginPath();
+      ctx.moveTo(rB.x, rB.y); ctx.lineTo(bB.x, bB.y); ctx.lineTo(bT.x, bT.y); ctx.lineTo(rT.x, rT.y);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.32)"; ctx.lineWidth = 1; ctx.stroke();
+
+      /* SW face */
+      ctx.fillStyle = swColor;
+      ctx.beginPath();
+      ctx.moveTo(lB.x, lB.y); ctx.lineTo(bB.x, bB.y); ctx.lineTo(bT.x, bT.y); ctx.lineTo(lT.x, lT.y);
+      ctx.closePath(); ctx.fill();
+      ctx.stroke();
+
+      /* Top face */
+      ctx.fillStyle = topColor;
+      ctx.beginPath();
+      ctx.moveTo(tT.x, tT.y); ctx.lineTo(rT.x, rT.y); ctx.lineTo(bT.x, bT.y); ctx.lineTo(lT.x, lT.y);
+      ctx.closePath(); ctx.fill();
+      ctx.stroke();
+
+      /* Material texture */
+      ctx.lineWidth = 0.8;
+      if(m.id === "brick-wall"){
+        ctx.strokeStyle = "rgba(0,0,0,0.32)";
+        for(var k=1;k<=4;k++){
+          var t = k/5;
+          ctx.beginPath();
+          ctx.moveTo(bB.x, bB.y - WH*t); ctx.lineTo(rB.x, rB.y - WH*t);
+          ctx.moveTo(lB.x, lB.y - WH*t); ctx.lineTo(bB.x, bB.y - WH*t);
+          ctx.stroke();
+        }
+        /* vertical staggered seams - simplified */
+        ctx.strokeStyle = "rgba(0,0,0,0.22)";
+        for(var k=1;k<3;k++){
+          var u = k/3;
+          var b1 = {x: rB.x + (bB.x-rB.x)*u, y: rB.y + (bB.y-rB.y)*u};
+          var t1 = {x: rT.x + (bT.x-rT.x)*u, y: rT.y + (bT.y-rT.y)*u};
+          ctx.beginPath(); ctx.moveTo(b1.x, b1.y - WH*0.2); ctx.lineTo(t1.x, t1.y + WH*0.2); ctx.stroke();
+          var b2 = {x: lB.x + (bB.x-lB.x)*u, y: lB.y + (bB.y-lB.y)*u};
+          var t2 = {x: lT.x + (bT.x-lT.x)*u, y: lT.y + (bT.y-lT.y)*u};
+          ctx.beginPath(); ctx.moveTo(b2.x, b2.y - WH*0.2); ctx.lineTo(t2.x, t2.y + WH*0.2); ctx.stroke();
+        }
+      } else if(m.id === "log-wall"){
+        ctx.strokeStyle = "rgba(0,0,0,0.4)";
+        for(var k=1;k<=3;k++){
+          var t = k/4;
+          ctx.beginPath();
+          ctx.moveTo(bB.x, bB.y - WH*t); ctx.lineTo(rB.x, rB.y - WH*t);
+          ctx.moveTo(lB.x, lB.y - WH*t); ctx.lineTo(bB.x, bB.y - WH*t);
+          ctx.stroke();
+        }
+        /* Log end-grain circles on corners */
+        ctx.fillStyle = darken(m.color, 0.35);
+        for(var k=1;k<=3;k++){
+          var t = k/4;
+          ctx.beginPath();
+          ctx.arc(bB.x, bB.y - WH*t, Math.max(1, TW*0.04), 0, Math.PI*2);
+          ctx.fill();
+        }
+      } else if(m.id === "stone-wall"){
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
+        var stones = [
+          ['SE', 0.15, 0.30, 0.28, 0.22],
+          ['SE', 0.50, 0.10, 0.22, 0.25],
+          ['SE', 0.55, 0.55, 0.30, 0.20],
+          ['SW', 0.18, 0.20, 0.30, 0.25],
+          ['SW', 0.55, 0.45, 0.30, 0.22],
+          ['SW', 0.30, 0.65, 0.25, 0.20]
+        ];
+        stones.forEach(function(s){
+          drawFacePoly([s[0], s[1], s[2], s[1]+s[3], s[2]+s[4]], p, TW, TH, WH);
+        });
+      } else if(m.id === "wood-wall"){
+        ctx.strokeStyle = "rgba(0,0,0,0.25)";
+        for(var k=1;k<3;k++){
+          var u = k/3;
+          var b1 = {x: rB.x + (bB.x-rB.x)*u, y: rB.y + (bB.y-rB.y)*u};
+          var t1 = {x: rT.x + (bT.x-rT.x)*u, y: rT.y + (bT.y-rT.y)*u};
+          ctx.beginPath(); ctx.moveTo(b1.x, b1.y); ctx.lineTo(t1.x, t1.y); ctx.stroke();
+          var b2 = {x: lB.x + (bB.x-lB.x)*u, y: lB.y + (bB.y-lB.y)*u};
+          var t2 = {x: lT.x + (bT.x-lT.x)*u, y: lT.y + (bT.y-lT.y)*u};
+          ctx.beginPath(); ctx.moveTo(b2.x, b2.y); ctx.lineTo(t2.x, t2.y); ctx.stroke();
+        }
+      }
+    }
+
+    /* Helper: draw a polygon on a wall face using normalized u,v coords */
+    function drawFacePoly(args, p, TW, TH, WH){
+      var face = args[0], u1=args[1], v1=args[2], u2=args[3], v2=args[4];
+      var f = faceQuad(p, TW, TH, WH, face);
+      var p1 = faceLerp(f, u1, v1);
+      var p2 = faceLerp(f, u2, v1);
+      var p3 = faceLerp(f, u2, v2);
+      var p4 = faceLerp(f, u1, v2);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+      ctx.closePath(); ctx.fill();
+    }
+
+    function faceQuad(p, TW, TH, WH, face){
+      var hW = TW/2, hH = TH/2;
+      var rB = {x:p.x+hW, y:p.y+hH};
+      var bB = {x:p.x,    y:p.y+TH};
+      var lB = {x:p.x-hW, y:p.y+hH};
+      if(face==='SE'){
+        return { bL: rB, bR: bB, tL: {x:rB.x, y:rB.y-WH}, tR: {x:bB.x, y:bB.y-WH} };
+      } else {
+        return { bL: lB, bR: bB, tL: {x:lB.x, y:lB.y-WH}, tR: {x:bB.x, y:bB.y-WH} };
+      }
+    }
+    function faceLerp(f, u, v){
+      function ip(a,b,t){return {x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t}}
+      var b = ip(f.bL, f.bR, u);
+      var t = ip(f.tL, f.tR, u);
+      return ip(b, t, v);
+    }
+
+    /* Choose which visible face to put an opening on, based on perimeter position */
+    function openingFace(b, r, c){
+      if(r === b.rows-1) return 'SW';
+      if(c === b.cols-1) return 'SE';
+      if(r === 0) return 'SE';
+      if(c === 0) return 'SW';
+      return 'SW';
+    }
+
+    function drawOpeningIso(p, TW, TH, WH, m, build, r, c){
+      var which = openingFace(build, r, c);
+      var face = faceQuad(p, TW, TH, WH, which);
+      if(m.cat === "door"){
+        var u1 = 0.22, u2 = 0.78, v1 = 0.03, v2 = 0.92;
+        var p1=faceLerp(face,u1,v1), p2=faceLerp(face,u2,v1), p3=faceLerp(face,u2,v2), p4=faceLerp(face,u1,v2);
+        ctx.fillStyle = m.color2;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 1; ctx.stroke();
+        /* inner panel */
+        var iu1=u1+0.08, iu2=u2-0.08, iv1=v1+0.08, iv2=v2-0.08;
+        var q1=faceLerp(face,iu1,iv1), q2=faceLerp(face,iu2,iv1), q3=faceLerp(face,iu2,iv2), q4=faceLerp(face,iu1,iv2);
+        ctx.fillStyle = m.color;
+        ctx.beginPath();
+        ctx.moveTo(q1.x, q1.y); ctx.lineTo(q2.x, q2.y); ctx.lineTo(q3.x, q3.y); ctx.lineTo(q4.x, q4.y);
+        ctx.closePath(); ctx.fill();
+        /* panel divider */
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        var mid1 = faceLerp(face, iu1, 0.5), mid2 = faceLerp(face, iu2, 0.5);
+        ctx.beginPath(); ctx.moveTo(mid1.x, mid1.y); ctx.lineTo(mid2.x, mid2.y); ctx.stroke();
+        /* knob */
+        var knob = faceLerp(face, u2-0.14, 0.55);
+        ctx.fillStyle = "#ffd54a";
+        ctx.beginPath(); ctx.arc(knob.x, knob.y, Math.max(1.5, TW*0.04), 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 0.5; ctx.stroke();
+      } else if(m.cat === "window"){
+        var u1 = 0.18, u2 = 0.82, v1 = 0.22, v2 = 0.78;
+        /* sill below window */
+        var sl1 = faceLerp(face, u1-0.04, v2);
+        var sl2 = faceLerp(face, u2+0.04, v2);
+        var sl3 = faceLerp(face, u2+0.04, v2+0.06);
+        var sl4 = faceLerp(face, u1-0.04, v2+0.06);
+        ctx.fillStyle = "#3a2a1a";
+        ctx.beginPath();
+        ctx.moveTo(sl1.x, sl1.y); ctx.lineTo(sl2.x, sl2.y); ctx.lineTo(sl3.x, sl3.y); ctx.lineTo(sl4.x, sl4.y);
+        ctx.closePath(); ctx.fill();
+        /* frame */
+        var p1=faceLerp(face,u1,v1), p2=faceLerp(face,u2,v1), p3=faceLerp(face,u2,v2), p4=faceLerp(face,u1,v2);
+        ctx.fillStyle = "#3a2a1a";
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
+        ctx.closePath(); ctx.fill();
+        /* glass */
+        var iu1=u1+0.04, iu2=u2-0.04, iv1=v1+0.06, iv2=v2-0.06;
+        var q1=faceLerp(face,iu1,iv1), q2=faceLerp(face,iu2,iv1), q3=faceLerp(face,iu2,iv2), q4=faceLerp(face,iu1,iv2);
+        var grad = ctx.createLinearGradient(q1.x, q1.y, q3.x, q3.y);
+        grad.addColorStop(0, m.color2);
+        grad.addColorStop(1, m.color);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(q1.x, q1.y); ctx.lineTo(q2.x, q2.y); ctx.lineTo(q3.x, q3.y); ctx.lineTo(q4.x, q4.y);
+        ctx.closePath(); ctx.fill();
+        /* mullions */
+        ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = 1.4;
+        var um = (iu1+iu2)/2;
+        var vm = (iv1+iv2)/2;
+        var a = faceLerp(face, um, iv1), b = faceLerp(face, um, iv2);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        var c2 = faceLerp(face, iu1, vm), d = faceLerp(face, iu2, vm);
+        ctx.beginPath(); ctx.moveTo(c2.x, c2.y); ctx.lineTo(d.x, d.y); ctx.stroke();
+        /* highlight glint */
+        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        var h1 = faceLerp(face, iu1+0.03, iv1+0.06);
+        var h2 = faceLerp(face, iu1+0.22, iv1+0.06);
+        var h3 = faceLerp(face, iu1+0.22, iv1+0.18);
+        var h4 = faceLerp(face, iu1+0.03, iv1+0.18);
+        ctx.beginPath();
+        ctx.moveTo(h1.x, h1.y); ctx.lineTo(h2.x, h2.y); ctx.lineTo(h3.x, h3.y); ctx.lineTo(h4.x, h4.y);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+
+    /* Pyramid hip roof over the build's wall bounding box */
+    function drawRoofPyramidIso(iso, build, TW, TH, WH){
+      var minR=99, minC=99, maxR=-1, maxC=-1;
+      var hasRoof = false;
+      var roofMatId = null;
+      for(var r=0;r<build.rows;r++){
+        for(var c=0;c<build.cols;c++){
+          if(build.cells[r][c].roof){
+            hasRoof = true;
+            if(!roofMatId) roofMatId = build.cells[r][c].roof;
+            if(r<minR) minR=r;
+            if(c<minC) minC=c;
+            if(r>maxR) maxR=r;
+            if(c>maxC) maxC=c;
+          }
+        }
+      }
+      if(!hasRoof) return;
+      var rmat = matById(roofMatId);
+
+      var oh = 0.28;
+      var nC = iso(minC - oh, minR - oh);
+      var eC = iso(maxC + 1 + oh, minR - oh);
+      var sC = iso(maxC + 1 + oh, maxR + 1 + oh);
+      var wC = iso(minC - oh, maxR + 1 + oh);
+      nC.y -= WH; eC.y -= WH; sC.y -= WH; wC.y -= WH;
+
+      var width = maxC - minC + 1;
+      var height = maxR - minR + 1;
+      var minDim = Math.min(width, height);
+      var peakRise = Math.max(TH*1.4, minDim * TH * 0.75);
+      var center = { x: (nC.x + sC.x)/2, y: (nC.y + sC.y)/2 - peakRise };
+
+      /* Back faces first (drawn behind) */
+      drawRoofTriangle(wC, nC, center, darken(rmat.color, 0.35), rmat, false);
+      drawRoofTriangle(nC, eC, center, darken(rmat.color, 0.25), rmat, false);
+      /* Front faces (visible) */
+      drawRoofTriangle(eC, sC, center, darken(rmat.color, 0.05), rmat, true);
+      drawRoofTriangle(sC, wC, center, rmat.color, rmat, true);
+
+      /* Ridge lines */
+      ctx.strokeStyle = darken(rmat.color, 0.4);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(nC.x, nC.y); ctx.lineTo(center.x, center.y); ctx.lineTo(sC.x, sC.y);
+      ctx.moveTo(eC.x, eC.y); ctx.lineTo(center.x, center.y); ctx.lineTo(wC.x, wC.y);
+      ctx.stroke();
+
+      /* Cap at peak */
+      ctx.fillStyle = darken(rmat.color, 0.45);
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, Math.max(1.5, TW*0.05), 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    function drawRoofTriangle(c1, c2, peak, color, rmat, withTexture){
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(c1.x, c1.y); ctx.lineTo(c2.x, c2.y); ctx.lineTo(peak.x, peak.y);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(0,0,0,0.35)"; ctx.lineWidth = 1;
+      ctx.stroke();
+      if(withTexture && rmat){
+        /* Shingle stripes parallel to eave */
+        ctx.strokeStyle = darken(color, 0.25);
+        ctx.lineWidth = 0.8;
+        for(var k=1;k<=5;k++){
+          var t = k/6;
+          var a = {x: c1.x + (peak.x-c1.x)*t, y: c1.y + (peak.y-c1.y)*t};
+          var b = {x: c2.x + (peak.x-c2.x)*t, y: c2.y + (peak.y-c2.y)*t};
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        }
+        /* Center seam */
+        ctx.strokeStyle = "rgba(0,0,0,0.18)";
+        var midEave = {x:(c1.x+c2.x)/2, y:(c1.y+c2.y)/2};
+        ctx.beginPath(); ctx.moveTo(midEave.x, midEave.y); ctx.lineTo(peak.x, peak.y); ctx.stroke();
+      }
+    }
+
+    /* Decor in iso */
+    function drawDecorIso(p, TW, TH, WH, id){
+      if(id==="flower-bed"){
+        ctx.fillStyle = "#5a8a3a";
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y + TH*0.2);
+        ctx.lineTo(p.x + TW*0.42, p.y + TH/2);
+        ctx.lineTo(p.x, p.y + TH*0.8);
+        ctx.lineTo(p.x - TW*0.42, p.y + TH/2);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.25)"; ctx.stroke();
+        var cols = ["#ff69b4","#ffd54a","#ff6b3a","#bb6dff","#56b056"];
+        var dots = [
+          {dx:-0.18, dy:0.42, h:TH*0.55},
+          {dx:0.05, dy:0.48, h:TH*0.45},
+          {dx:0.2, dy:0.4, h:TH*0.6},
+          {dx:-0.05, dy:0.32, h:TH*0.7},
+          {dx:0.12, dy:0.62, h:TH*0.4}
+        ];
+        for(var i=0;i<dots.length;i++){
+          var d = dots[i];
+          var x = p.x + TW*d.dx, y = p.y + TH*d.dy;
+          ctx.strokeStyle = "#3a7a3a"; ctx.lineWidth = Math.max(1, TW*0.025);
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+0.5, y - d.h); ctx.stroke();
+          ctx.fillStyle = cols[i%cols.length];
+          ctx.beginPath(); ctx.arc(x, y - d.h, Math.max(1.2, TW*0.07), 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.5)";
+          ctx.beginPath(); ctx.arc(x - TW*0.015, y - d.h - TW*0.015, Math.max(0.5, TW*0.025), 0, Math.PI*2); ctx.fill();
+        }
+      } else if(id==="shrub"){
+        var cx = p.x, cy = p.y + TH*0.55;
+        ctx.fillStyle = "#2a6a2a";
+        ctx.beginPath(); ctx.arc(cx-TW*0.14, cy, TW*0.20, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx+TW*0.14, cy + TH*0.05, TW*0.18, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#3a8a3a";
+        ctx.beginPath(); ctx.arc(cx, cy - TH*0.05, TW*0.22, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#56b056";
+        ctx.beginPath(); ctx.arc(cx-TW*0.04, cy - TH*0.25, TW*0.16, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.3)";
+        ctx.beginPath(); ctx.arc(cx-TW*0.06, cy - TH*0.32, TW*0.05, 0, Math.PI*2); ctx.fill();
+      } else if(id==="chimney"){
+        var H = WH * 1.5;
+        var hW = TW*0.18, hH = TH*0.18;
+        /* base footprint corners on top of foundation */
+        var tB = {x:p.x,    y:p.y + TH*0.45};
+        var rB = {x:p.x+hW, y:p.y + TH*0.45 + hH};
+        var bB = {x:p.x,    y:p.y + TH*0.45 + hH*2};
+        var lB = {x:p.x-hW, y:p.y + TH*0.45 + hH};
+        var tT = {x:tB.x, y:tB.y-H};
+        var rT = {x:rB.x, y:rB.y-H};
+        var bT = {x:bB.x, y:bB.y-H};
+        var lT = {x:lB.x, y:lB.y-H};
+        /* SE face */
+        ctx.fillStyle = "#5a2818";
+        ctx.beginPath();
+        ctx.moveTo(rB.x,rB.y); ctx.lineTo(bB.x,bB.y); ctx.lineTo(bT.x,bT.y); ctx.lineTo(rT.x,rT.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth=1; ctx.stroke();
+        /* SW face */
+        ctx.fillStyle = "#7a3a2a";
+        ctx.beginPath();
+        ctx.moveTo(lB.x,lB.y); ctx.lineTo(bB.x,bB.y); ctx.lineTo(bT.x,bT.y); ctx.lineTo(lT.x,lT.y);
+        ctx.closePath(); ctx.fill();
+        ctx.stroke();
+        /* Top - flared cap */
+        ctx.fillStyle = "#a04a36";
+        ctx.beginPath();
+        ctx.moveTo(tT.x, tT.y); ctx.lineTo(rT.x, rT.y); ctx.lineTo(bT.x, bT.y); ctx.lineTo(lT.x, lT.y);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        /* Brick lines */
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        for(var k=1;k<=4;k++){
+          var t = k/5;
+          ctx.beginPath();
+          ctx.moveTo(bB.x, bB.y - H*t); ctx.lineTo(rB.x, rB.y - H*t);
+          ctx.moveTo(lB.x, lB.y - H*t); ctx.lineTo(bB.x, bB.y - H*t);
+          ctx.stroke();
+        }
+        /* Smoke puffs */
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        var smX = (tT.x + rT.x + bT.x + lT.x)/4;
+        var smY = (tT.y + rT.y + bT.y + lT.y)/4;
+        ctx.beginPath(); ctx.arc(smX, smY - 6, 5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        ctx.beginPath(); ctx.arc(smX + 4, smY - 13, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.beginPath(); ctx.arc(smX - 3, smY - 22, 7, 0, Math.PI*2); ctx.fill();
+      }
+    }
+
+    /* Furniture rendering (interior) */
+    function drawFurniture(x,y,s,id){
+      var cx=x+s/2, cy=y+s/2;
+      if(id==="furn-bed"){
+        ctx.fillStyle="#6b8de6";ctx.fillRect(x+s*0.12,y+s*0.18,s*0.76,s*0.7);
+        ctx.fillStyle="#fff";ctx.fillRect(x+s*0.16,y+s*0.2,s*0.7,s*0.22);
+        ctx.fillStyle="#3a4a5a";ctx.fillRect(x+s*0.12,y+s*0.12,s*0.76,s*0.1);
+      } else if(id==="furn-sofa"){
+        ctx.fillStyle="#c87a52";ctx.fillRect(x+s*0.1,y+s*0.3,s*0.8,s*0.5);
+        ctx.fillStyle="#e0a070";ctx.fillRect(x+s*0.1,y+s*0.15,s*0.8,s*0.2);
+        ctx.fillRect(x+s*0.05,y+s*0.3,s*0.12,s*0.5);
+        ctx.fillRect(x+s*0.83,y+s*0.3,s*0.12,s*0.5);
+      } else if(id==="furn-table"){
+        ctx.fillStyle="#9c6b3d";ctx.fillRect(x+s*0.18,y+s*0.3,s*0.64,s*0.18);
+        ctx.fillRect(x+s*0.22,y+s*0.5,s*0.08,s*0.32);
+        ctx.fillRect(x+s*0.7,y+s*0.5,s*0.08,s*0.32);
+      } else if(id==="furn-chair"){
+        ctx.fillStyle="#bd8453";ctx.fillRect(x+s*0.3,y+s*0.42,s*0.4,s*0.4);
+        ctx.fillRect(x+s*0.3,y+s*0.18,s*0.4,s*0.25);
+      } else if(id==="furn-plant"){
+        ctx.fillStyle="#56a456";ctx.beginPath();ctx.arc(cx,y+s*0.32,s*0.25,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#7a4a26";ctx.fillRect(x+s*0.36,y+s*0.5,s*0.28,s*0.28);
+      } else if(id==="furn-lamp"){
+        ctx.fillStyle="#fff7c8";ctx.beginPath();ctx.moveTo(cx,y+s*0.18);ctx.lineTo(x+s*0.7,y+s*0.4);ctx.lineTo(x+s*0.3,y+s*0.4);ctx.closePath();ctx.fill();
+        ctx.fillStyle="#222";ctx.fillRect(cx-1,y+s*0.4,2,s*0.4);
+        ctx.fillStyle="#666";ctx.fillRect(x+s*0.36,y+s*0.78,s*0.28,s*0.05);
+      } else if(id==="furn-rug"){
+        ctx.fillStyle="#b04a30";ctx.fillRect(x+s*0.1,y+s*0.15,s*0.8,s*0.7);
+        ctx.fillStyle="#e8c54a";ctx.fillRect(x+s*0.18,y+s*0.25,s*0.64,s*0.5);
+        ctx.fillStyle="#b04a30";ctx.fillRect(x+s*0.32,y+s*0.4,s*0.36,s*0.2);
+      } else if(id==="furn-painting"){
+        ctx.fillStyle="#3a4a5a";ctx.fillRect(x+s*0.15,y+s*0.2,s*0.7,s*0.5);
+        ctx.fillStyle="#daa520";ctx.fillRect(x+s*0.2,y+s*0.25,s*0.6,s*0.4);
+        ctx.fillStyle="#3a4a5a";ctx.fillRect(x+s*0.28,y+s*0.55,s*0.44,s*0.07);
+      }
+    }
+
+    /* ============================================================
+       TOWN drawing
+       ============================================================ */
+    var hotspots = [];
+    var buildGeom = null;
+    var hover = null;
+
+    function drawTown(){
+      var w = canvas.width, h = canvas.height;
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = currentGroundColor();
+      ctx.fillRect(0, h*0.55, w, h*0.45);
+      drawClouds(performance.now());
+      if(state.season===3){
+        ctx.fillStyle="rgba(255,255,255,0.85)";
+        for(var i=0;i<28;i++){
+          var sx = (i*43 + state.day*7) % w;
+          var sy = (i*29 + state.day*5) % (h*0.55);
+          ctx.beginPath();ctx.arc(sx, sy, 1.5+(i%3)*0.4, 0, Math.PI*2);ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = state.season===2 ? "#ffb368" : "#fff2a8";
+        ctx.beginPath();ctx.arc(w-70, 60, 26, 0, Math.PI*2);ctx.fill();
+      }
+      /* Storm rain overlay */
+      if(state.weather==="storm"){
+        ctx.fillStyle="rgba(20,30,50,0.18)";
+        ctx.fillRect(0,0,w,h);
+        ctx.strokeStyle="rgba(180,200,230,0.5)";
+        ctx.lineWidth=1;
+        for(var i=0;i<40;i++){
+          var rx = (i*37 + state.day*11) % w;
+          var ry = (i*53 + state.day*7) % h;
+          ctx.beginPath();ctx.moveTo(rx, ry);ctx.lineTo(rx-5, ry+12);ctx.stroke();
+        }
+      }
+      /* Road */
+      ctx.fillStyle="#3a3a3a";
+      ctx.fillRect(0, h*0.74, w, h*0.06);
+      ctx.strokeStyle="#f5f5f5";ctx.setLineDash([14,12]);ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(0,h*0.77);ctx.lineTo(w,h*0.77);ctx.stroke();
+      ctx.setLineDash([]);
+
+      /* layout slots */
+      var slotW = 130;
+      var startX = 30;
+      var topY = h*0.42;
+      var slotCount = 4;
+      var slots = [];
+      for(var i=0;i<slotCount;i++) slots.push({x:startX+i*(slotW+12), y:topY, w:slotW, h:120});
+
+      var contents = [];
+      var ownedFirst = state.ownedHouses[0]||null;
+      if(ownedFirst) contents.push({type:"owned", data:ownedFirst, index:0});
+
+      for(var bi=0;bi<state.builds.length && contents.length<slotCount;bi++){
+        contents.push({type:"active", data:state.builds[bi], index:bi});
+      }
+
+      var plotPage = state.hasCar ? state.townScroll : 0;
+      var startPlot = plotPage * 2;
+      for(var pi=startPlot;pi<state.townPlots.length && contents.length<slotCount;pi++){
+        contents.push({type:"empty", data:state.townPlots[pi], index:pi});
+      }
+      while(contents.length<slotCount) contents.push({type:"empty-bg"});
+
+      hotspots = [];
+      for(var si=0;si<slotCount;si++){
+        var s = slots[si], c = contents[si];
+        if(!c) continue;
+        drawTownSlot(s.x, s.y, s.w, s.h, c);
+        hotspots.push({rect:[s.x, s.y, s.w, s.h], content:c});
+      }
+
+      /* Hardware store on the right */
+      var hsx = w-180, hsy = h*0.34, hsw=150, hsh=160;
+      drawHardwareStore(hsx, hsy, hsw, hsh);
+      hotspots.push({rect:[hsx, hsy, hsw, hsh], content:{type:"shop"}});
+
+      /* Title strip */
+      ctx.fillStyle="rgba(0,0,0,0.5)";
+      ctx.fillRect(10, 10, 360, 32);
+      ctx.fillStyle="#fff";
+      ctx.font="bold 16px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textBaseline="middle";
+      ctx.fillText("Foundation Heights — "+SEASONS[state.season]+" · "+weatherById(state.weather).name, 22, 26);
+
+      if(state.hasCar){drawCar(40, h*0.78);}
+    }
+
+    function currentGroundColor(){
+      if(state.season===0) return "#9bcd5e";
+      if(state.season===1) return "#a3d562";
+      if(state.season===2) return "#caa55a";
+      return "#dbe2eb";
+    }
+
+    function drawTownSlot(x,y,w,h,c){
+      ctx.fillStyle = currentGroundColor();
+      ctx.fillRect(x, y+h-30, w, 30);
+      ctx.fillStyle="#a98358";
+      ctx.fillRect(x+10, y+10, w-20, h-40);
+      ctx.strokeStyle="rgba(0,0,0,0.2)";
+      ctx.strokeRect(x+10, y+10, w-20, h-40);
+
+      if(c.type==="empty"){
+        var p = plotById(c.data.plotType);
+        ctx.fillStyle="rgba(255,255,255,0.92)";
+        ctx.fillRect(x+12, y+12, w-24, 22);
+        ctx.fillStyle="#222";
+        ctx.font="bold 12px sans-serif";ctx.textBaseline="top";
+        ctx.fillText(c.data.owner+"'s "+p.name, x+16, y+15);
+        ctx.font="11px sans-serif";ctx.fillStyle="#555";
+        ctx.fillText(p.cols+"×"+p.rows+" · earn "+(p.base+"+ pts"), x+16, y+30);
+        ctx.fillStyle="#3b5fc0";ctx.fillRect(x+w/2-22, y+h-58, 44, 18);
+        ctx.fillStyle="#fff";ctx.font="bold 10px sans-serif";
+        ctx.textBaseline="middle";ctx.textAlign="center";
+        ctx.fillText("CLICK", x+w/2, y+h-49);ctx.textAlign="left";
+      } else if(c.type==="active"){
+        var b = c.data;
+        var p = plotById(b.plotType);
+        drawPlotIso(x+12, y+10, p.cols, p.rows, {w:w-24, h:h-50}, b);
+        ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(x, y+h-30, w, 22);
+        ctx.fillStyle="#fff";ctx.font="bold 11px sans-serif";ctx.textBaseline="middle";ctx.textAlign="center";
+        ctx.fillText(b.owner+" — "+b.style, x+w/2, y+h-19);ctx.textAlign="left";
+        var person = personById(b.personality);
+        var stale = state.day - b.lastTouched;
+        var daysLeft = person.cancelDays - stale;
+        if(daysLeft<=2 && !b.tutorial){
+          ctx.fillStyle = daysLeft<=1 ? "rgba(215,58,73,0.95)" : "rgba(214,137,44,0.95)";
+          ctx.fillRect(x+w-50, y+12, 42, 18);
+          ctx.fillStyle="#fff";ctx.font="bold 11px sans-serif";
+          ctx.textAlign="center";ctx.textBaseline="middle";
+          ctx.fillText(daysLeft+"d left", x+w-29, y+21);ctx.textAlign="left";
+        }
+      } else if(c.type==="owned"){
+        var b = c.data;
+        var p = plotById(b.plotType);
+        drawPlotIso(x+12, y+10, p.cols, p.rows, {w:w-24, h:h-50}, b);
+        ctx.fillStyle="rgba(34,134,58,0.92)";ctx.fillRect(x, y+h-30, w, 22);
+        ctx.fillStyle="#fff";ctx.font="bold 11px sans-serif";ctx.textBaseline="middle";ctx.textAlign="center";
+        ctx.fillText("HOME — "+b.style, x+w/2, y+h-19);ctx.textAlign="left";
+      } else {
+        ctx.fillStyle="rgba(0,0,0,0.08)";
+        ctx.fillRect(x+10, y+10, w-20, h-40);
+        ctx.fillStyle="#666";ctx.font="11px sans-serif";
+        ctx.textBaseline="middle";ctx.textAlign="center";
+        ctx.fillText("(undeveloped)", x+w/2, y+h/2);ctx.textAlign="left";
+      }
+    }
+
+    function drawHardwareStore(x,y,w,h){
+      shadeRect(x, y+20, w, h-20, "#e8d0a0", "#c5a875");
+      ctx.fillStyle="#7a3a2a";
+      ctx.beginPath();ctx.moveTo(x-6, y+24);ctx.lineTo(x+w/2, y);ctx.lineTo(x+w+6, y+24);ctx.closePath();ctx.fill();
+      ctx.fillStyle="#fff";ctx.fillRect(x+12, y+34, w-24, 22);
+      ctx.fillStyle="#222";ctx.font="bold 13px sans-serif";ctx.textBaseline="middle";ctx.textAlign="center";
+      ctx.fillText("HARDWARE", x+w/2, y+45);ctx.textAlign="left";
+      ctx.fillStyle="#6b3a1a";ctx.fillRect(x+w/2-16, y+h-50, 32, 50);
+      ctx.fillStyle="#ffd54a";ctx.beginPath();ctx.arc(x+w/2+10, y+h-25, 2.5, 0, Math.PI*2);ctx.fill();
+      ctx.fillStyle="#9ed1e8";ctx.fillRect(x+12, y+h-58, 32, 28);ctx.fillRect(x+w-44, y+h-58, 32, 28);
+      ctx.strokeStyle="#3a2a1a";ctx.strokeRect(x+12, y+h-58, 32, 28);ctx.strokeRect(x+w-44, y+h-58, 32, 28);
+      ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(x, y+h+4, w, 18);
+      ctx.fillStyle="#fff";ctx.font="bold 11px sans-serif";ctx.textBaseline="middle";ctx.textAlign="center";
+      ctx.fillText("Click to shop", x+w/2, y+h+13);ctx.textAlign="left";
+    }
+
+    function drawCar(x,y){
+      ctx.fillStyle="#c33";ctx.fillRect(x, y-10, 36, 14);ctx.fillRect(x+6, y-20, 24, 12);
+      ctx.fillStyle="#9ed1e8";ctx.fillRect(x+10, y-18, 8, 8);ctx.fillRect(x+20, y-18, 8, 8);
+      ctx.fillStyle="#222";
+      ctx.beginPath();ctx.arc(x+8,y+4,5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(x+28,y+4,5,0,Math.PI*2);ctx.fill();
+    }
+
+    /* ============================================================
+       BUILD VIEW
+       ============================================================ */
+    function drawBuildView(){
+      var w=canvas.width, h=canvas.height;
+      ctx.clearRect(0,0,w,h);
+      var g = ctx.createLinearGradient(0,0,0,h);
+      g.addColorStop(0,"rgba(255,255,255,0.0)");g.addColorStop(1,"rgba(255,255,255,0.2)");
+      ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+
+      var b = state.builds[state.buildIndex];
+      if(!b) return;
+
+      /* Build iso geometry centered in the canvas */
+      buildGeom = makeIsoGeom(0, 40, w, h-50, b.cols, b.rows);
+      drawPlotIsoG(buildGeom, b);
+
+      ctx.fillStyle="rgba(0,0,0,0.55)";
+      ctx.fillRect(10,10, 380, 28);
+      ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.textBaseline="middle";
+      var person = personById(b.personality);
+      ctx.fillText(b.owner+" ("+person.name+") — "+b.style+" · "+b.cols+"×"+b.rows, 22, 24);
+
+      /* days-left chip on canvas */
+      if(!b.tutorial){
+        var daysLeft = person.cancelDays - (state.day - b.lastTouched);
+        var col = daysLeft<=1 ? "rgba(215,58,73,0.92)" : (daysLeft<=2 ? "rgba(214,137,44,0.92)" : "rgba(50,90,40,0.85)");
+        ctx.fillStyle=col;ctx.fillRect(w-130, 10, 120, 28);
+        ctx.fillStyle="#fff";ctx.font="bold 12px sans-serif";ctx.textBaseline="middle";ctx.textAlign="center";
+        ctx.fillText(daysLeft+" day"+(daysLeft===1?"":"s")+" left", w-70, 24);ctx.textAlign="left";
+      }
+
+      if(hover && hover.r!=null){
+        strokeDiamond(buildGeom, hover.c, hover.r, "#ffeb3b", 2.5);
+      }
+    }
+
+    /* ============================================================
+       INTERIOR VIEW
+       ============================================================ */
+    var interiorGeom = null;
+    function drawInteriorView(){
+      var w=canvas.width, h=canvas.height;
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle="#f4ead6";ctx.fillRect(0,0,w,h);
+      var house = state.ownedHouses[state.interiorIndex];
+      if(!house) return;
+      /* find bounding box of walls */
+      var box = wallBox(house);
+      if(!box){
+        ctx.fillStyle="#777";ctx.font="14px sans-serif";ctx.textAlign="center";
+        ctx.fillText("No walls in this house.", w/2, h/2);ctx.textAlign="left";
+        return;
+      }
+      var iCols = box.maxC-box.minC+1, iRows = box.maxR-box.minR+1;
+      var s = Math.floor(Math.min((w-80)/iCols, (h-100)/iRows));
+      s = Math.max(40, Math.min(80, s));
+      var px = Math.floor((w - iCols*s)/2);
+      var py = Math.floor((h - iRows*s)/2)+10;
+      interiorGeom = {px:px, py:py, s:s, box:box};
+
+      /* draw floor */
+      shadeRect(px-6, py-6, iCols*s+12, iRows*s+12, "#7a4a26", "#6b3a1a");
+      shadeRect(px, py, iCols*s, iRows*s, "#d8b682", "#b0865a");
+      ctx.strokeStyle="rgba(0,0,0,0.15)";
+      for(var r=0;r<=iRows;r++){ctx.beginPath();ctx.moveTo(px,py+r*s);ctx.lineTo(px+iCols*s,py+r*s);ctx.stroke();}
+      for(var c=0;c<=iCols;c++){ctx.beginPath();ctx.moveTo(px+c*s,py);ctx.lineTo(px+c*s,py+iRows*s);ctx.stroke();}
+
+      /* draw walls along perimeter */
+      for(var r=box.minR;r<=box.maxR;r++){
+        for(var c=box.minC;c<=box.maxC;c++){
+          var cell = house.cells[r][c];
+          var lx = px + (c-box.minC)*s, ly = py + (r-box.minR)*s;
+          if(cell.wall){
+            var m = matById(cell.wall);
+            shadeRect(lx, ly, s, s, m.color, m.color2);
+            if(cell.opening){
+              var op = matById(cell.opening);
+              if(op.cat==="window"){ctx.fillStyle="#cfe3ee";ctx.fillRect(lx+s*0.15, ly+s*0.25, s*0.7, s*0.5);}
+              else if(op.cat==="door"){ctx.fillStyle="#6b3a1a";ctx.fillRect(lx+s*0.25, ly+s*0.1, s*0.5, s*0.8);}
+            }
+          }
+        }
+      }
+
+      /* draw furniture */
+      Object.keys(house.furniture||{}).forEach(function(k){
+        var parts = k.split(","), r=+parts[0], c=+parts[1];
+        if(r<box.minR||r>box.maxR||c<box.minC||c>box.maxC) return;
+        var lx = px + (c-box.minC)*s, ly = py + (r-box.minR)*s;
+        drawFurniture(lx, ly, s, house.furniture[k]);
+      });
+
+      /* title */
+      ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(10,10,360,28);
+      ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.textBaseline="middle";
+      ctx.fillText("Interior — "+house.style+" (Comfort: "+houseComfort(house)+")", 22, 24);
+
+      /* hover highlight */
+      if(hover && hover.r!=null){
+        ctx.strokeStyle="#3b5fc0";ctx.lineWidth=2;
+        ctx.strokeRect(px+hover.c*s+1, py+hover.r*s+1, s-2, s-2);
+      }
+    }
+
+    function houseComfort(house){
+      var c=0;
+      Object.keys(house.furniture||{}).forEach(function(k){
+        var m = matById(house.furniture[k]);
+        if(m) c += (m.comfort||0);
+      });
+      return c;
+    }
+    function totalComfort(){
+      var c=0;
+      state.ownedHouses.forEach(function(h){c+=houseComfort(h)});
+      return c;
+    }
+
+    function wallBox(b){
+      var minR=99,minC=99,maxR=-1,maxC=-1;
+      for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++){
+        if(b.cells[r][c].wall){ if(r<minR)minR=r; if(c<minC)minC=c; if(r>maxR)maxR=r; if(c>maxC)maxC=c; }
+      }
+      if(maxR<0) return null;
+      return {minR:minR,minC:minC,maxR:maxR,maxC:maxC};
+    }
+
+    /* ============================================================
+       TUTORIAL drawing
+       ============================================================ */
+    function drawTutorialView(){
+      drawBuildView();
+      var step = TUTORIAL_STEPS[state.tutorialStep];
+      if(!step) return;
+      if(step.highlight && buildGeom){
+        var b = state.builds[state.buildIndex];
+        var h = step.highlight(b);
+        if(h){
+          var pulse = 0.4 + 0.3*Math.sin(performance.now()*0.005);
+          ctx.save();
+          h.forEach(function(rc){
+            strokeDiamond(buildGeom, rc[1], rc[0], "rgba(255, 235, 59, "+(0.6+pulse*0.4)+")", 2.5);
+          });
+          ctx.restore();
+        }
+      }
+    }
+
+    /* ============================================================
+       TITLE
+       ============================================================ */
+    function drawTitle(){
+      var w=canvas.width, h=canvas.height;
+      ctx.clearRect(0,0,w,h);
+      drawClouds(performance.now());
+      ctx.fillStyle = currentGroundColor();
+      ctx.fillRect(0, h*0.6, w, h*0.4);
+      var sample = sampleHero();
+      drawPlotIso(w*0.25, h*0.05, sample.cols, sample.rows, {w:w*0.5, h:h*0.6}, sample);
+      ctx.fillStyle="rgba(0,0,0,0.55)";
+      ctx.fillRect(0, h*0.78, w, 60);
+      ctx.fillStyle="#fff";
+      ctx.font="bold 36px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+      ctx.fillText("BUILT: FOUNDATIONS", w/2, h*0.78 + 30);ctx.textAlign="left";
+    }
+    function sampleHero(){
+      var c = makeEmptyCells(4,4);
+      for(var r=0;r<4;r++) for(var k=0;k<4;k++) c[r][k].foundation="wood-foundation";
+      for(var k=0;k<4;k++){ c[0][k].wall="brick-wall"; c[3][k].wall="brick-wall"; }
+      for(var r=1;r<3;r++){ c[r][0].wall="brick-wall"; c[r][3].wall="brick-wall"; }
+      c[3][1].wall="brick-wall"; c[3][1].opening="wood-door";
+      c[0][1].wall="brick-wall"; c[0][1].opening="wood-window";
+      c[0][2].wall="brick-wall"; c[0][2].opening="wood-window";
+      c[1][1].roof="shingle-roof"; c[1][2].roof="shingle-roof";
+      c[2][1].roof="shingle-roof"; c[2][2].roof="shingle-roof";
+      return {cols:4, rows:4, cells:c};
+    }
+
+    /* ============================================================
+       FRAME
+       ============================================================ */
+    function render(){
+      STAGE.classList.remove("is-summer","is-fall","is-winter");
+      if(state.season===1) STAGE.classList.add("is-summer");
+      else if(state.season===2) STAGE.classList.add("is-fall");
+      else if(state.season===3) STAGE.classList.add("is-winter");
+
+      if(state.view==="town" || state.view==="shop") drawTown();
+      else if(state.view==="build") drawBuildView();
+      else if(state.view==="tutorial") drawTutorialView();
+      else if(state.view==="title") drawTitle();
+      else if(state.view==="interior") drawInteriorView();
+      else if(state.view==="gameover") drawTown();
+      requestAnimationFrame(render);
+    }
+
+    /* ============================================================
+       INTERACTION
+       ============================================================ */
+    function canvasPos(e){
+      var rect = canvas.getBoundingClientRect();
+      var sx = canvas.width/rect.width, sy = canvas.height/rect.height;
+      var x = (e.clientX-rect.left)*sx;
+      var y = (e.clientY-rect.top)*sy;
+      return {x:x, y:y, clientX:e.clientX, clientY:e.clientY, rect:rect};
+    }
+
+    canvas.addEventListener("mousemove", function(e){
+      var p = canvasPos(e);
+      /* hover for build / interior */
+      if(state.view==="build" || state.view==="tutorial"){
+        if(buildGeom){
+          var b = state.builds[state.buildIndex];
+          if(b){
+            var hit = isoHitTest(buildGeom, p.x, p.y);
+            if(hit){
+              hover = hit;
+              updateBuildTooltip(p, hit.r, hit.c, b);
+              return;
+            }
+          }
+        }
+        hover=null;hideTooltip();return;
+      }
+      if(state.view==="interior"){
+        if(interiorGeom){
+          var house = state.ownedHouses[state.interiorIndex];
+          if(house){
+            var box = interiorGeom.box;
+            var iCols = box.maxC-box.minC+1, iRows=box.maxR-box.minR+1;
+            var lc = Math.floor((p.x - interiorGeom.px)/interiorGeom.s);
+            var lr = Math.floor((p.y - interiorGeom.py)/interiorGeom.s);
+            if(lc>=0&&lc<iCols&&lr>=0&&lr<iRows){
+              hover = {r:lr, c:lc};
+              updateInteriorTooltip(p, lr, lc, house);
+              return;
+            }
+          }
+        }
+        hover=null;hideTooltip();return;
+      }
+      /* town: highlight clickable hotspot via tooltip */
+      if(state.view==="town"){
+        for(var i=0;i<hotspots.length;i++){
+          var hs = hotspots[i], R=hs.rect;
+          if(p.x>=R[0]&&p.x<=R[0]+R[2]&&p.y>=R[1]&&p.y<=R[1]+R[3]){
+            updateTownTooltip(p, hs.content);
+            return;
+          }
+        }
+      }
+      hideTooltip();
+    });
+    canvas.addEventListener("mouseleave", function(){hover=null;hideTooltip()});
+
+    function updateBuildTooltip(p, r, c, b){
+      var cell = b.cells[r][c];
+      var stageRect = STAGE.getBoundingClientRect();
+      var x = p.clientX - stageRect.left;
+      var y = p.clientY - stageRect.top;
+      var lines = [];
+      lines.push('<span class="bf-tooltip__title">('+r+', '+c+')</span>');
+      var contents = [];
+      if(cell.foundation) contents.push(matById(cell.foundation).name);
+      if(cell.wall) contents.push(matById(cell.wall).name);
+      if(cell.opening) contents.push(matById(cell.opening).name);
+      if(cell.roof) contents.push(matById(cell.roof).name);
+      if(cell.decor) contents.push(matById(cell.decor).name);
+      lines.push('<span class="bf-tooltip__row">'+(contents.length?contents.join(" + "):"(empty)")+'</span>');
+      if(selectedMat){
+        var m = matById(selectedMat);
+        var stock = state.inventory[selectedMat]||0;
+        var price = currentCost(m);
+        lines.push('<span class="bf-tooltip__row">Selected: '+m.name+'</span>');
+        lines.push('<span class="bf-tooltip__row">Stock: '+stock+' · Buy: '+price+' pts</span>');
+      }
+      showTooltip(lines.join(""), x, y);
+    }
+    function updateInteriorTooltip(p, lr, lc, house){
+      var stageRect = STAGE.getBoundingClientRect();
+      var x = p.clientX - stageRect.left;
+      var y = p.clientY - stageRect.top;
+      var globR = interiorGeom.box.minR+lr, globC = interiorGeom.box.minC+lc;
+      var key = globR+","+globC;
+      var f = house.furniture[key];
+      var lines = [];
+      lines.push('<span class="bf-tooltip__title">Tile ('+globR+', '+globC+')</span>');
+      lines.push('<span class="bf-tooltip__row">'+(f?matById(f).name:"(empty)")+'</span>');
+      if(selectedMat && matById(selectedMat).cat==="furn"){
+        var m = matById(selectedMat);
+        lines.push('<span class="bf-tooltip__row">Place '+m.name+' · '+(state.inventory[selectedMat]||0)+' in stock</span>');
+      }
+      showTooltip(lines.join(""), x, y);
+    }
+    function updateTownTooltip(p, c){
+      var stageRect = STAGE.getBoundingClientRect();
+      var x = p.clientX - stageRect.left;
+      var y = p.clientY - stageRect.top;
+      var lines = [];
+      if(c.type==="empty"){
+        var pl = plotById(c.data.plotType);
+        lines.push('<span class="bf-tooltip__title">'+c.data.owner+'</span>');
+        lines.push('<span class="bf-tooltip__row">'+pl.name+' · '+pl.cols+'×'+pl.rows+'</span>');
+        lines.push('<span class="bf-tooltip__row">Reward base: '+pl.base+'+ pts</span>');
+      } else if(c.type==="active"){
+        var b = c.data;
+        var person = personById(b.personality);
+        var daysLeft = person.cancelDays - (state.day - b.lastTouched);
+        lines.push('<span class="bf-tooltip__title">'+b.owner+' — '+b.style+'</span>');
+        lines.push('<span class="bf-tooltip__row">Personality: '+person.name+'</span>');
+        lines.push('<span class="bf-tooltip__row">Reward: '+b.reward+' pts</span>');
+        if(!b.tutorial) lines.push('<span class="bf-tooltip__row">'+daysLeft+' day'+(daysLeft===1?"":"s")+' before cancel</span>');
+      } else if(c.type==="owned"){
+        var b = c.data;
+        lines.push('<span class="bf-tooltip__title">Your home — '+b.style+'</span>');
+        lines.push('<span class="bf-tooltip__row">Comfort: '+houseComfort(b)+'</span>');
+        lines.push('<span class="bf-tooltip__row">Click to decorate</span>');
+      } else if(c.type==="shop"){
+        lines.push('<span class="bf-tooltip__title">Hardware Store</span>');
+        lines.push('<span class="bf-tooltip__row">Buy materials, car, business</span>');
+      } else { hideTooltip(); return; }
+      showTooltip(lines.join(""), x, y);
+    }
+
+    canvas.addEventListener("click", function(e){
+      if(state.view==="title"){ startGame(); return; }
+      var p = canvasPos(e);
+      if(state.view==="town"){
+        for(var i=0;i<hotspots.length;i++){
+          var hs = hotspots[i], R = hs.rect;
+          if(p.x>=R[0] && p.x<=R[0]+R[2] && p.y>=R[1] && p.y<=R[1]+R[3]){
+            handleTownClick(hs.content);return;
+          }
+        }
+      }
+      if(state.view==="build" || state.view==="tutorial"){handleBuildClick(p, false)}
+      if(state.view==="interior"){handleInteriorClick(p, false)}
+    });
+    canvas.addEventListener("contextmenu", function(e){
+      e.preventDefault();
+      var p = canvasPos(e);
+      if(state.view==="build" || state.view==="tutorial"){handleBuildClick(p, true)}
+      if(state.view==="interior"){handleInteriorClick(p, true)}
+    });
+
+    function handleTownClick(content){
+      if(content.type==="empty"){
+        if(state.builds.length>=3){toast("You already have 3 active builds.");sfx("bad");return}
+        var p = plotById(content.data.plotType);
+        if(state.points < p.unlock){toast("Need "+p.unlock+" pts to take a "+p.name+".");sfx("bad");return}
+        var nb = newBuild(content.data.plotType, false, content.data.owner);
+        state.builds.push(nb);
+        state.townPlots.splice(content.index, 1);
+        refillTown();
+        state.buildIndex = state.builds.length-1;
+        state.view = "build";
+        logMsg(content.data.owner+" hired you for a "+nb.style+" ("+personById(nb.personality).name+").");
+        toast("Accepted "+nb.style+" from "+nb.owner);sfx("click");
+        renderPanels();
+      } else if(content.type==="active"){
+        state.buildIndex = content.index; state.view = "build"; sfx("click"); renderPanels();
+      } else if(content.type==="owned"){
+        state.interiorIndex = content.index;
+        state.view = "interior";
+        sfx("click");
+        renderPanels();
+      } else if(content.type==="shop"){
+        state.view = "shop";sfx("click");renderPanels();
+      }
+    }
+
+    function handleBuildClick(p, isRight){
+      if(!buildGeom) return;
+      var b = state.builds[state.buildIndex];
+      if(!b) return;
+      var hit = isoHitTest(buildGeom, p.x, p.y);
+      if(!hit) return;
+      var r = hit.r, c = hit.c;
+
+      if(isRight){
+        var cell = b.cells[r][c];
+        var before = cloneCell(cell);
+        var returned = null;
+        if(cell.decor){returned=cell.decor; cell.decor=null}
+        else if(cell.opening){returned=cell.opening; cell.opening=null}
+        else if(cell.roof){returned=cell.roof; cell.roof=null}
+        else if(cell.wall){returned=cell.wall; cell.wall=null}
+        else if(cell.foundation){returned=cell.foundation; cell.foundation=null}
+        else return;
+        b.history.push({r:r,c:c,before:before, removed:returned});
+        if(b.history.length>30) b.history.shift();
+        if(returned) addInventory(returned, 1);
+        logMsg("Removed "+matById(returned).name+" (returned to stock).");
+        sfx("break");
+        b.lastTouched = state.day;
+        renderPanels();
+        return;
+      }
+
+      if(!selectedMat){toast("Pick a material from the panel.");return}
+      var m = matById(selectedMat);
+      if(!m || m.cat==="furn"){toast("Pick a build material (not furniture)."); return}
+      /* Storm restriction */
+      if(state.weather==="storm" && m.cat==="decor"){toast("Storm: decor placement blocked."); sfx("bad"); return}
+      var stock = state.inventory[selectedMat]||0;
+      if(stock<=0){toast("Out of "+m.name+". Buy more at the store."); sfx("bad"); return}
+
+      var cell = b.cells[r][c];
+      var before = cloneCell(cell);
+      var placed = placeMaterial(b, r, c, m);
+      if(!placed) return;
+      addInventory(m.id, -1);
+      b.history.push({r:r,c:c,before:before, placedMatId:m.id});
+      if(b.history.length>30) b.history.shift();
+      b.lastTouched = state.day;
+      logMsg("Placed "+m.name+".");
+      sfx("place");
+      if(m.id==="brick-wall"){state.brickPlaced++; checkAchievement("brick-master", state.brickPlaced>=50)}
+      renderPanels();
+      if(state.view==="tutorial") tryAdvanceTutorial();
+    }
+
+    function handleInteriorClick(p, isRight){
+      if(!interiorGeom) return;
+      var house = state.ownedHouses[state.interiorIndex];
+      if(!house) return;
+      var box = interiorGeom.box;
+      var iCols = box.maxC-box.minC+1, iRows=box.maxR-box.minR+1;
+      var lc = Math.floor((p.x - interiorGeom.px)/interiorGeom.s);
+      var lr = Math.floor((p.y - interiorGeom.py)/interiorGeom.s);
+      if(lc<0||lc>=iCols||lr<0||lr>=iRows) return;
+      var globR = box.minR+lr, globC = box.minC+lc;
+      var key = globR+","+globC;
+      /* must be inside walls (not a wall cell) */
+      if(house.cells[globR][globC].wall){toast("That's a wall.");return}
+
+      if(isRight){
+        if(house.furniture[key]){
+          var id = house.furniture[key];
+          addInventory(id, 1);
+          delete house.furniture[key];
+          logMsg("Removed furniture "+matById(id).name+".");
+          sfx("break");
+          renderPanels();
+        }
+        return;
+      }
+      if(!selectedMat){toast("Pick furniture from the panel.");return}
+      var m = matById(selectedMat);
+      if(!m || m.cat!=="furn"){toast("Pick furniture for interior.");return}
+      var stock = state.inventory[selectedMat]||0;
+      if(stock<=0){toast("Out of "+m.name+". Buy more at the store.");sfx("bad");return}
+      if(house.furniture[key]){toast("Already has furniture there.");return}
+      house.furniture[key] = m.id;
+      addInventory(m.id, -1);
+      logMsg("Placed "+m.name+" in "+house.style+".");
+      sfx("place");
+      checkAchievement("first-decor", true);
+      renderPanels();
+    }
+
+    function placeMaterial(b, r, c, m){
+      var cell = b.cells[r][c];
+      if(m.cat==="foundation"){cell.foundation = m.id; return true;}
+      if(m.cat==="wall"){
+        if(!cell.foundation) cell.foundation = "wood-foundation";
+        if(cell.roof){toast("Can't put a wall under a roof.");return false}
+        cell.wall = m.id; cell.opening = null;
+        return true;
+      }
+      if(m.cat==="door" || m.cat==="window"){
+        if(!cell.wall){toast("Place a wall first.");return false}
+        if(!isPerimeter(b, r, c)){toast("Doors and windows must be on the perimeter.");return false}
+        cell.opening = m.id; return true;
+      }
+      if(m.cat==="roof"){
+        if(cell.wall){toast("Can't roof a wall cell.");return false}
+        if(!cell.foundation){cell.foundation = "wood-foundation";}
+        if(!isInteriorCell(b, r, c)){toast("Roof goes on interior cells (inside the walls).");return false}
+        cell.roof = m.id; return true;
+      }
+      if(m.cat==="decor"){
+        if(cell.wall || cell.roof){toast("Place decor on an open tile.");return false}
+        cell.decor = m.id; return true;
+      }
+      return false;
+    }
+
+    function isPerimeter(b, r, c){return r===0 || c===0 || r===b.rows-1 || c===b.cols-1}
+    function isInteriorCell(b, r, c){
+      if(b.cells[r][c].wall) return false;
+      function L(){for(var k=c-1;k>=0;k--){if(b.cells[r][k].wall) return true} return false}
+      function R(){for(var k=c+1;k<b.cols;k++){if(b.cells[r][k].wall) return true} return false}
+      function U(){for(var k=r-1;k>=0;k--){if(b.cells[k][c].wall) return true} return false}
+      function D(){for(var k=r+1;k<b.rows;k++){if(b.cells[k][c].wall) return true} return false}
+      return L() && R() && U() && D();
+    }
+
+    function currentCost(m){
+      var season = SEASONS[state.season];
+      var inSeason = m.seasons.indexOf(season) !== -1;
+      var base = m.cost;
+      var c = inSeason ? base : Math.ceil(base*1.5);
+      /* weather modifiers */
+      var w = weatherById(state.weather);
+      if(w.priceMul) c = Math.ceil(c * w.priceMul);
+      if(w.woodSurcharge && (m.id==="wood-foundation"||m.id==="wood-wall"||m.id==="wood-door"||m.id==="wood-window")){
+        c = Math.ceil(c * w.woodSurcharge);
+      }
+      return Math.max(1, c);
+    }
+
+    function addInventory(id, delta){
+      state.inventory[id] = Math.max(0, (state.inventory[id]||0) + delta);
+    }
+
+    /* ============================================================
+       UNDO
+       ============================================================ */
+    function undoBuild(){
+      var b = state.builds[state.buildIndex];
+      if(!b || !b.history || !b.history.length){toast("Nothing to undo.");sfx("bad");return}
+      var h = b.history.pop();
+      var cell = b.cells[h.r][h.c];
+      /* Reapply 'before' snapshot */
+      var current = cloneCell(cell);
+      cell.foundation = h.before.foundation;
+      cell.wall = h.before.wall;
+      cell.opening = h.before.opening;
+      cell.roof = h.before.roof;
+      cell.decor = h.before.decor;
+      /* Adjust inventory based on what changed */
+      if(h.placedMatId){addInventory(h.placedMatId, 1)}
+      if(h.removed){addInventory(h.removed, -1)}
+      logMsg("Undid last change.");
+      sfx("undo");
+      b.lastTouched = state.day;
+      renderPanels();
+    }
+
+    /* ============================================================
+       OBJECTIVE EVALUATION
+       ============================================================ */
+    function evalBuild(b){
+      var req = b.req;
+      var result = { doors:0, windows:0, walls:0, wallType:0, otherWalls:0, roof:0, roofType:0, decor:0,
+                     foundationCount:0, perimeterClosed:false, hasMust:{}, interiorRoofed:0, interiorTotal:0 };
+      for(var i=0;i<req.mustHave.length;i++) result.hasMust[req.mustHave[i]] = 0;
+
+      for(var r=0;r<b.rows;r++){
+        for(var c=0;c<b.cols;c++){
+          var cell = b.cells[r][c];
+          if(cell.foundation) result.foundationCount++;
+          if(cell.wall){result.walls++; if(cell.wall === req.wall) result.wallType++; else result.otherWalls++;}
+          if(cell.opening){
+            var om = matById(cell.opening);
+            if(om && om.cat==="door") result.doors++;
+            if(om && om.cat==="window") result.windows++;
+            if(result.hasMust.hasOwnProperty(cell.opening)) result.hasMust[cell.opening]++;
+          }
+          if(cell.roof){result.roof++; if(cell.roof === req.roof) result.roofType++; if(result.hasMust.hasOwnProperty(cell.roof)) result.hasMust[cell.roof]++}
+          if(cell.decor){result.decor++; if(result.hasMust.hasOwnProperty(cell.decor)) result.hasMust[cell.decor]++}
+          if(!cell.wall){if(isInteriorCell(b, r, c)){result.interiorTotal++; if(cell.roof) result.interiorRoofed++}}
+        }
+      }
+      var box = wallBox(b);
+      var closed = true;
+      if(!box) closed = false;
+      else {
+        for(var c=box.minC;c<=box.maxC;c++){ if(!b.cells[box.minR][c].wall || !b.cells[box.maxR][c].wall){closed=false;break} }
+        if(closed){for(var r=box.minR;r<=box.maxR;r++){ if(!b.cells[r][box.minC].wall || !b.cells[r][box.maxC].wall){closed=false;break} }}
+      }
+      result.perimeterClosed = closed;
+
+      var checks = [];
+      checks.push({ id:"closed", label:"Closed wall perimeter", pass: result.perimeterClosed });
+      checks.push({ id:"windows", label:"At least "+req.windows+" window(s)", pass: result.windows>=req.windows });
+      checks.push({ id:"doors", label:"At least "+req.doors+" door(s)", pass: result.doors>=req.doors });
+      var wallName = matById(req.wall).name;
+      checks.push({ id:"walls", label:"Walls primarily "+wallName, pass: (result.walls>0 && result.wallType >= Math.ceil(result.walls*0.6)) });
+      var roofName = matById(req.roof).name;
+      checks.push({ id:"roof", label:"Roof: "+roofName+" covering inside", pass: (result.roof>0 && result.roofType >= Math.ceil(result.roof*0.6) && result.interiorTotal>0 && result.interiorRoofed >= Math.ceil(result.interiorTotal*0.7)) });
+      if(req.decorMin>0) checks.push({ id:"decor", label:"At least "+req.decorMin+" decoration(s)", pass: result.decor>=req.decorMin });
+      (req.mustHave||[]).forEach(function(id){
+        var nm = matById(id) ? matById(id).name : id;
+        checks.push({id:"must-"+id, label:"Includes "+nm, pass: (result.hasMust[id]||0)>0 });
+      });
+      return { result:result, checks:checks, complete: checks.every(function(x){return x.pass}) };
+    }
+
+    function scoreBuild(b, eval_){
+      /* 3 stars if all bonus criteria + complete; 2 if complete and finished within X days */
+      var stars = 1;
+      if(eval_.complete){
+        stars = 2;
+        var days = state.day - b.startDay;
+        var sizeBudget = (b.cols*b.rows<=20) ? 4 : 7;
+        var extras = 0;
+        if(eval_.result.decor >= 3) extras++;
+        if(eval_.result.windows >= b.req.windows + 1) extras++;
+        if(eval_.result.otherWalls===0) extras++;
+        if(days<=sizeBudget) extras++;
+        if(extras>=3) stars = 3;
+      }
+      return stars;
+    }
+
+    function submitBuild(){
+      var b = state.builds[state.buildIndex];
+      if(!b) return;
+      var e = evalBuild(b);
+      if(!e.complete){
+        var miss = e.checks.filter(function(x){return !x.pass}).map(function(x){return x.label}).join("; ");
+        toast("Not yet — needs: "+miss);sfx("bad");
+        return;
+      }
+      var stars = scoreBuild(b, e);
+      var reward = b.reward;
+      var w = weatherById(state.weather);
+      if(w.rewardMul) reward = Math.round(reward * w.rewardMul);
+      state.points += reward;
+      logMsg("Finished "+b.style+" for "+b.owner+"! "+("★".repeat(stars))+" +"+reward+" pts.");
+      toast("Build complete! +"+reward+" pts ("+("★".repeat(stars))+")");
+      sfx("ok");
+      b.done = true;
+
+      /* portfolio entry */
+      state.portfolio.push({
+        owner: b.owner, style: b.style, plotType: b.plotType,
+        days: state.day - b.startDay, season: SEASONS[b.startSeason],
+        stars: stars, reward: reward, personality: b.personality,
+        cells: deepCloneCells(b.cells), cols: b.cols, rows: b.rows,
+        finishedDay: state.day
+      });
+
+      var keepAsHome = b.tutorial || state.ownedHouses.length===0;
+      if(keepAsHome){
+        state.ownedHouses.push(b);
+        logMsg("You moved into your new home!");
+        if(b.tutorial) checkAchievement("first-home", true);
+      }
+      state.builds.splice(state.buildIndex, 1);
+      state.buildIndex = -1;
+
+      /* achievements */
+      var nonTutorialCount = state.portfolio.filter(function(x){return x.style!=="Starter Home"}).length;
+      if(nonTutorialCount>=5) checkAchievement("five-builds", true);
+      var styles = {};
+      state.portfolio.forEach(function(x){if(x.style!=="Starter Home") styles[x.style]=true});
+      if(Object.keys(styles).length>=3) checkAchievement("styles-three", true);
+      if(b.plotType==="manor") checkAchievement("manor-lord", true);
+      var threeStarCount = state.portfolio.filter(function(x){return x.stars>=3}).length;
+      if(threeStarCount>=5) checkAchievement("perfect-five", true);
+
+      if(b.tutorial){
+        state.tutorialDone = true;
+        state.tutorialStep = TUTORIAL_STEPS.length;
+        document.getElementById("tut").style.display="none";
+        /* gift a small restock for first real build */
+        addInventory("wood-foundation", 16);
+        addInventory("wood-wall", 12);
+        addInventory("wood-door", 1);
+        addInventory("wood-window", 3);
+        addInventory("straw-roof", 8);
+        logMsg("Hardware delivered a starter restock.");
+      }
+      refillTown();
+      state.view = "town";
+      renderPanels();
+    }
+
+    function deepCloneCells(c){
+      var n=[];
+      for(var r=0;r<c.length;r++){
+        var row=[];
+        for(var k=0;k<c[r].length;k++) row.push(cloneCell(c[r][k]));
+        n.push(row);
+      }
+      return n;
+    }
+
+    /* ============================================================
+       TUTORIAL
+       ============================================================ */
+    var TUTORIAL_STEPS = [
+      { text:"Welcome! This is your first plot. You start with a stocked inventory — no need to shop yet. First, pick \"Wood Foundation\" and click every tile.",
+        highlight:function(b){var out=[];for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++) if(!b.cells[r][c].foundation) out.push([r,c]);return out;},
+        check:function(b){for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++) if(!b.cells[r][c].foundation) return false;return true;}
+      },
+      { text:"Great! Now build \"Wood Wall\" tiles around the perimeter.",
+        highlight:function(b){var out=[];for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++) if(isPerimeter(b,r,c) && !b.cells[r][c].wall) out.push([r,c]);return out;},
+        check:function(b){for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++) if(isPerimeter(b,r,c) && !b.cells[r][c].wall) return false;return true;}
+      },
+      { text:"Pick \"Wood Door\" and click a perimeter wall to add a door.",
+        highlight:null,
+        check:function(b){var n=0;for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++){var op=b.cells[r][c].opening;if(op && matById(op).cat==="door") n++;}return n>=1;}
+      },
+      { text:"Add at least 2 \"Wood Window\" openings on the perimeter walls.",
+        highlight:null,
+        check:function(b){var n=0;for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++){var op=b.cells[r][c].opening;if(op && matById(op).cat==="window") n++;}return n>=2;}
+      },
+      { text:"Pick \"Straw Roof\" and cover each interior tile.",
+        highlight:function(b){var out=[];for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++) if(!b.cells[r][c].wall && isInteriorCell(b,r,c) && !b.cells[r][c].roof) out.push([r,c]);return out;},
+        check:function(b){for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++) if(!b.cells[r][c].wall && isInteriorCell(b,r,c) && !b.cells[r][c].roof) return false;return true;}
+      },
+      { text:"You did it! Click \"Submit Build\" in the right panel to finish your starter home and move in.",
+        highlight:null,
+        check:function(b){return b.done;}
+      }
+    ];
+    function tryAdvanceTutorial(){
+      var b = state.builds[state.buildIndex]; if(!b) return;
+      var step = TUTORIAL_STEPS[state.tutorialStep]; if(!step) return;
+      if(step.check(b)){state.tutorialStep++; showTutorialBubble()}
+    }
+    function showTutorialBubble(){
+      if(state.view!=="tutorial"){document.getElementById("tut").style.display="none";return}
+      var step = TUTORIAL_STEPS[state.tutorialStep];
+      var tut = document.getElementById("tut");
+      if(!step){tut.style.display="none";return}
+      tut.style.display="flex";
+      document.getElementById("tut-text").textContent = step.text;
+    }
+    document.getElementById("tut-next").addEventListener("click", function(){
+      var b = state.builds[state.buildIndex];
+      if(b){
+        var step = TUTORIAL_STEPS[state.tutorialStep];
+        if(step && step.check(b)){state.tutorialStep++; showTutorialBubble()}
+        else toast("Finish the current step first.");
+      }
+    });
+
+    /* ============================================================
+       ACHIEVEMENTS
+       ============================================================ */
+    function checkAchievement(id, condition){
+      if(condition && !state.achievements[id]){
+        state.achievements[id] = true;
+        var a = ACHIEVEMENTS.filter(function(x){return x.id===id})[0];
+        if(a){toast(a.icon+" "+a.name+" unlocked!"); logMsg("Achievement: "+a.name); sfx("ok");}
+      }
+    }
+
+    /* ============================================================
+       UI PANELS
+       ============================================================ */
+    var selectedMat = null;
+    var selectedCat = "all";
+
+    function renderPanels(){
+      updateHud();
+      var left = document.getElementById("left-content");
+      var right = document.getElementById("right-content");
+
+      if(state.view==="title"){
+        left.innerHTML = '<h3>How to play</h3><p style="font-size:.85rem;line-height:1.55">Take plots from neighbors, satisfy their style and materials, and earn points. To buy new materials you have to walk over to the Hardware Store building in your town view — they get added to your inventory and you spend them on the build.</p>'
+          + '<ul style="font-size:.78rem;line-height:1.55;color:var(--color-text-muted);margin:.4rem 0 0 1rem"><li>Left-click a tile to place from your stock, right-click to remove (returns to stock).</li><li>Doors and windows go on perimeter walls only.</li><li>Roof goes on interior tiles only.</li><li>Don\'t leave a build untouched too long — clients will cancel.</li><li>Watch the weather. Sale Day is your friend.</li><li>Tap the Hardware Store in the town to shop. There is no shortcut button.</li></ul>';
+        right.innerHTML = '<h3>Start</h3>'
+          + '<button class="btn" id="ui-play" type="button" style="margin-right:.5rem">New Game (Tutorial)</button>'
+          + '<button class="btn btn--small btn--secondary" id="ui-skip" type="button">Skip Tutorial</button>';
+        document.getElementById("ui-play").onclick = function(){startGame()};
+        document.getElementById("ui-skip").onclick = function(){startGame(true)};
+        return;
+      }
+
+      if(state.view==="town") renderTownPanels();
+      else if(state.view==="build") renderBuildPanels();
+      else if(state.view==="tutorial") renderBuildPanels();
+      else if(state.view==="shop") renderShopPanels();
+      else if(state.view==="interior") renderInteriorPanels();
+      else if(state.view==="portfolio") renderPortfolioPanels();
+      else if(state.view==="gameover") renderGameOverPanels();
+
+      showTutorialBubble();
+    }
+
+    function renderTownPanels(){
+      var left = document.getElementById("left-content");
+      var right = document.getElementById("right-content");
+      var html = '<h3>Active builds <span class="bf-pill">'+state.builds.length+'/3</span></h3>';
+      if(state.builds.length===0){
+        html += '<p style="font-size:.85rem;color:var(--color-text-muted)">No active builds. Click an empty plot to start one.</p>';
+      } else {
+        html += '<div class="bf-builds-list">';
+        state.builds.forEach(function(b,i){
+          var person = personById(b.personality);
+          var daysLeft = person.cancelDays - (state.day - b.lastTouched);
+          var pill = '<span class="bf-pill is-style">'+person.name+'</span>';
+          if(daysLeft<=1) pill += '<span class="bf-pill is-bad">'+daysLeft+'d left</span>';
+          else if(daysLeft<=2) pill += '<span class="bf-pill is-warn">'+daysLeft+'d left</span>';
+          html += '<div class="bf-build-row"><div class="bf-build-row__name">'+b.owner+' — '+b.style+'</div>'+pill+'<button class="btn btn--small" data-open="'+i+'">Open</button><div class="bf-build-row__meta">'+b.cols+'×'+b.rows+' · reward '+b.reward+' pts</div></div>';
+        });
+        html += '</div>';
+      }
+      html += '<h3 style="margin-top:.75rem">Available plots</h3>';
+      html += '<div class="bf-builds-list">';
+      state.townPlots.forEach(function(t,i){
+        var p = plotById(t.plotType);
+        var locked = state.points<p.unlock;
+        html += '<div class="bf-build-row"><div class="bf-build-row__name">'+t.owner+'</div><div class="bf-build-row__meta">'+p.name+' · '+p.cols+'×'+p.rows+' · earn '+p.base+'+ pts</div>'+(locked?'<span class="bf-pill is-warn">'+p.unlock+' pts unlock</span>':'')+'<button class="btn btn--small" data-take="'+i+'" '+(locked?'disabled':'')+'>Take</button></div>';
+      });
+      html += '</div>';
+      if(state.hasCar){
+        var pages = Math.max(1, Math.ceil(state.townPlots.length/2));
+        html += '<div class="bf-town-nav"><button id="town-prev" '+(state.townScroll<=0?'disabled':'')+'>&larr; Drive</button><span style="font-size:.75rem;color:var(--color-text-muted)">Page '+(state.townScroll+1)+'/'+pages+'</span><button id="town-next" '+(state.townScroll>=pages-1?'disabled':'')+'>Drive &rarr;</button></div>';
+      }
+      left.innerHTML = html;
+
+      left.querySelectorAll("[data-open]").forEach(function(b){
+        b.addEventListener("click", function(){state.buildIndex = +b.getAttribute("data-open");state.view = "build";renderPanels();sfx("click")});
+      });
+      left.querySelectorAll("[data-take]").forEach(function(b){
+        b.addEventListener("click", function(){var i = +b.getAttribute("data-take");handleTownClick({type:"empty", data:state.townPlots[i], index:i})});
+      });
+      var prev = document.getElementById("town-prev"), next = document.getElementById("town-next");
+      if(prev) prev.addEventListener("click", function(){state.townScroll--;refillTown();renderPanels();sfx("click")});
+      if(next) next.addEventListener("click", function(){state.townScroll++;refillTown();renderPanels();sfx("click")});
+
+      var rhtml = '<h3>Town</h3>';
+      rhtml += '<p style="font-size:.85rem;line-height:1.55">Click a plot to build. Click the hardware store to shop. Click your home (green tag) to decorate.</p>';
+      rhtml += '<h3 style="margin-top:.5rem">Inventory snapshot</h3>';
+      rhtml += renderInventoryStrip();
+      rhtml += '<h3 style="margin-top:.5rem">Log</h3>';
+      rhtml += '<div class="bf-log">'+state.log.slice(0,8).map(function(e){return '<div class="bf-log__entry">'+e+'</div>'}).join('')+'</div>';
+      right.innerHTML = rhtml;
+    }
+
+    function renderInventoryStrip(){
+      var ids = Object.keys(state.inventory).filter(function(id){return state.inventory[id]>0});
+      if(!ids.length) return '<p style="font-size:.78rem;color:var(--color-text-muted)">No materials. Visit the Hardware store.</p>';
+      var html = '<div style="display:flex;gap:.3rem;flex-wrap:wrap;font-size:.72rem">';
+      ids.slice(0, 12).forEach(function(id){
+        var m = matById(id);
+        if(!m) return;
+        html += '<span class="bf-pill" style="display:inline-flex;align-items:center;gap:.3rem"><span style="display:inline-block;width:10px;height:10px;background:'+m.color2+';border-radius:2px"></span>'+m.name+' ×'+state.inventory[id]+'</span>';
+      });
+      html += '</div>';
+      return html;
+    }
+
+    function renderBuildPanels(){
+      var left = document.getElementById("left-content");
+      var right = document.getElementById("right-content");
+      var b = state.builds[state.buildIndex];
+      if(!b){state.view = "town"; renderPanels(); return;}
+
+      var cats = ["all","foundation","wall","door","window","roof","decor"];
+      var tabHtml = '<div class="bf-tabs">';
+      cats.forEach(function(c){tabHtml += '<button class="bf-tab '+(selectedCat===c?'is-active':'')+'" data-cat="'+c+'">'+c+'</button>'});
+      tabHtml += '</div>';
+
+      var matsHtml = '<div class="bf-palette">';
+      MATS.forEach(function(m){
+        if(m.cat==="furn") return;
+        if(selectedCat!=="all" && m.cat!==selectedCat) return;
+        var trueLocked = state.points < m.unlock && m.unlock>30;
+        var stock = state.inventory[m.id]||0;
+        var stockClass = stock===0 ? 'is-empty' : (stock<=3 ? 'is-low' : '');
+        matsHtml += '<button class="bf-mat '+(selectedMat===m.id?'is-selected':'')+'" data-mat="'+m.id+'" '+(trueLocked?'disabled':'')+'>'
+          + '<span class="bf-mat__swatch" style="background:'+m.color2+'"></span>'
+          + '<span class="bf-mat__info"><span class="bf-mat__name">'+m.name+'</span>'
+          + '<span class="bf-mat__meta">'+m.cat+'</span></span>'
+          + (trueLocked?'<span class="bf-mat__lock">'+m.unlock+'</span>':'<span class="bf-mat__stock '+stockClass+'">'+stock+'</span>')
+          + '</button>';
+      });
+      matsHtml += '</div>';
+
+      var actHtml = '<div class="bf-actions">'
+        + '<button class="bf-tool" id="act-submit">Submit Build</button>'
+        + '<button class="bf-tool" id="act-undo">Undo ('+(b.history?b.history.length:0)+')</button>'
+        + '<button class="bf-tool" id="act-back">&larr; Town</button>'
+        + (b.tutorial?'':'<button class="bf-tool" id="act-cancel">Cancel build</button>')
+        + '</div>';
+
+      var instr = '<p class="bf-instructions">Left-click to place from stock. Right-click to remove (returns to stock). Doors/windows = perimeter walls; roof = interior tiles. Out of stock? Click <strong>Hardware</strong>.</p>';
+      left.innerHTML = '<h3>Materials</h3>' + tabHtml + matsHtml + actHtml + instr;
+
+      left.querySelectorAll("[data-cat]").forEach(function(t){t.addEventListener("click", function(){selectedCat = t.getAttribute("data-cat");renderPanels()})});
+      left.querySelectorAll("[data-mat]").forEach(function(m){m.addEventListener("click", function(){if(m.disabled) return;selectedMat = m.getAttribute("data-mat");renderPanels();sfx("click")})});
+      document.getElementById("act-submit").addEventListener("click", submitBuild);
+      document.getElementById("act-undo").addEventListener("click", undoBuild);
+      document.getElementById("act-back").addEventListener("click", function(){state.view="town";renderPanels();sfx("click")});
+      var cancelBtn = document.getElementById("act-cancel");
+      if(cancelBtn) cancelBtn.addEventListener("click", function(){
+        if(confirm("Cancel this build? You will lose progress (no refund).")){
+          state.builds.splice(state.buildIndex,1);state.buildIndex = -1;state.view = "town";
+          logMsg("Canceled build for "+b.owner+".");renderPanels();
+        }
+      });
+
+      var ev = evalBuild(b);
+      var checks = ev.checks.map(function(c){return '<li class="'+(c.pass?'is-done':'')+'">'+c.label+'</li>'}).join('');
+      var person = personById(b.personality);
+      var daysLeft = b.tutorial ? null : (person.cancelDays - (state.day - b.lastTouched));
+      var rhtml = '<h3>Objective — '+b.style+'</h3>';
+      rhtml += '<div class="bf-objective"><div>Client: <strong>'+b.owner+'</strong> <span class="bf-pill is-style">'+person.name+'</span></div>';
+      rhtml += '<div>Reward: <strong>'+b.reward+' pts</strong>'+(daysLeft!=null?' · <strong>'+daysLeft+' day'+(daysLeft===1?"":"s")+' left</strong>':'')+'</div>';
+      rhtml += '<ul>'+checks+'</ul></div>';
+      rhtml += '<div style="margin-top:.5rem;font-size:.78rem;color:var(--color-text-muted)">Walls: '+ev.result.walls+' · Windows: '+ev.result.windows+' · Doors: '+ev.result.doors+' · Roof tiles: '+ev.result.roof+' · Decor: '+ev.result.decor+'</div>';
+      rhtml += '<h3 style="margin-top:.6rem">Log</h3><div class="bf-log">'+state.log.slice(0,5).map(function(e){return '<div class="bf-log__entry">'+e+'</div>'}).join('')+'</div>';
+      right.innerHTML = rhtml;
+    }
+
+    function renderShopPanels(){
+      var left = document.getElementById("left-content");
+      var right = document.getElementById("right-content");
+      var lh = '<h3>Materials</h3>';
+      lh += '<p style="font-size:.78rem;color:var(--color-text-muted);margin-bottom:.4rem">'
+        + 'Current weather: <strong>'+weatherById(state.weather).name+'</strong> · '+weatherById(state.weather).desc
+        + '</p>';
+      var cats = ["foundation","wall","door","window","roof","decor","furn"];
+      lh += '<div class="bf-tabs">';
+      cats.forEach(function(c){lh += '<button class="bf-tab '+(selectedCat===c?'is-active':'')+'" data-shop-cat="'+c+'">'+(c==="furn"?"furniture":c)+'</button>'});
+      lh += '</div>';
+      lh += '<div class="bf-shop-grid">';
+      MATS.forEach(function(m){
+        if(selectedCat!=="all" && m.cat!==selectedCat) return;
+        var inS = m.seasons.indexOf(SEASONS[state.season])!==-1;
+        var locked = state.points<m.unlock && m.unlock>0;
+        var cost = currentCost(m);
+        var stock = state.inventory[m.id]||0;
+        lh += '<div class="bf-shop-item">'
+          + '<div class="bf-shop-item__stock">×'+stock+'</div>'
+          + '<div class="bf-shop-item__title"><span style="display:inline-block;width:14px;height:14px;background:'+m.color2+';border-radius:3px;border:1px solid rgba(0,0,0,.15)"></span>'+m.name+'</div>'
+          + '<div class="bf-shop-item__desc">'+m.desc+'</div>'
+          + '<div class="bf-shop-item__price">'+cost+' pts'+(inS?'':' <span class="bf-pill is-warn">off-season</span>')+(locked?' <span class="bf-pill is-warn">'+m.unlock+' pt unlock</span>':'')+'</div>'
+          + '<div class="bf-shop-item__row">'
+          + '<button data-buy-mat="'+m.id+'" data-qty="1" '+(locked?'disabled':'')+'>+1</button>'
+          + '<button data-buy-mat="'+m.id+'" data-qty="5" '+(locked?'disabled':'')+'>+5</button>'
+          + '</div>'
+          + '</div>';
+      });
+      lh += '</div>';
+      lh += '<div class="bf-actions"><button class="bf-tool" id="shop-back">&larr; Back to Town</button></div>';
+      left.innerHTML = lh;
+      document.getElementById("shop-back").addEventListener("click", function(){state.view="town";renderPanels();sfx("click")});
+      left.querySelectorAll("[data-shop-cat]").forEach(function(t){t.addEventListener("click",function(){selectedCat = t.getAttribute("data-shop-cat");renderPanels()})});
+      left.querySelectorAll("[data-buy-mat]").forEach(function(b){
+        b.addEventListener("click", function(){
+          var id = b.getAttribute("data-buy-mat"), qty = +b.getAttribute("data-qty");
+          var m = matById(id);
+          var cost = currentCost(m)*qty;
+          if(state.points-cost < -150){toast("Can't drop below -150 pts.");sfx("bad");return}
+          state.points -= cost;
+          addInventory(id, qty);
+          logMsg("Bought "+qty+"× "+m.name+" for "+cost+" pts.");
+          sfx("buy");
+          renderPanels();
+        });
+      });
+
+      /* Right: investments */
+      var rh = '<h3>Investments</h3>';
+      rh += '<div class="bf-shop-grid">';
+      rh += shopItem("car","Car","Drive across town and see twice as many plots.",400,state.hasCar,!state.hasCar);
+      rh += shopItem("biz","Design Business","Earn points from comfort in your homes.",800,state.hasBusiness,!state.hasBusiness && state.hasCar);
+      rh += '</div>';
+      rh += '<h3 style="margin-top:.5rem">Plot unlocks</h3>';
+      rh += '<div class="bf-shop-grid">';
+      PLOT_TYPES.forEach(function(p){
+        var owned = state.points>=p.unlock;
+        rh += '<div class="bf-shop-item"><div class="bf-shop-item__title">'+p.name+'</div><div class="bf-shop-item__desc">'+p.cols+'×'+p.rows+' · base reward '+p.base+'</div><button disabled>'+(owned?'Available':p.unlock+' pts to unlock')+'</button></div>';
+      });
+      rh += '</div>';
+      right.innerHTML = rh;
+      right.querySelectorAll("[data-buy]").forEach(function(b){
+        b.addEventListener("click", function(){
+          var id = b.getAttribute("data-buy");
+          if(id==="car"){if(state.points>=400){state.points-=400;state.hasCar=true;refillTown();toast("You bought a car!");logMsg("Bought a car (-400 pts).");sfx("buy");checkAchievement("driver",true);renderPanels();}else toast("Need 400 pts.");}
+          else if(id==="biz"){if(state.points>=800){state.points-=800;state.hasBusiness=true;toast("Design business opened!");logMsg("Opened design business (-800 pts).");sfx("buy");checkAchievement("biz-open",true);renderPanels();}else toast("Need 800 pts.");}
+        });
+      });
+    }
+
+    function shopItem(id,title,desc,cost,owned,canBuy){
+      return '<div class="bf-shop-item"><div class="bf-shop-item__title">'+title+'</div><div class="bf-shop-item__desc">'+desc+'</div>'
+        +'<button data-buy="'+id+'" '+(owned||!canBuy?'disabled':'')+'>'+(owned?'Owned':'Buy '+cost+' pts')+'</button></div>';
+    }
+
+    function renderInteriorPanels(){
+      var left = document.getElementById("left-content");
+      var right = document.getElementById("right-content");
+      var house = state.ownedHouses[state.interiorIndex];
+      if(!house){state.view="town";renderPanels();return}
+
+      var matsHtml = '<h3>Furniture</h3><div class="bf-palette">';
+      MATS.filter(function(m){return m.cat==="furn"}).forEach(function(m){
+        var stock = state.inventory[m.id]||0;
+        var stockClass = stock===0 ? 'is-empty' : (stock<=2 ? 'is-low' : '');
+        matsHtml += '<button class="bf-mat '+(selectedMat===m.id?'is-selected':'')+'" data-mat="'+m.id+'">'
+          + '<span class="bf-mat__swatch" style="background:'+m.color2+'"></span>'
+          + '<span class="bf-mat__info"><span class="bf-mat__name">'+m.name+'</span>'
+          + '<span class="bf-mat__meta">comfort +'+(m.comfort||0)+'</span></span>'
+          + '<span class="bf-mat__stock '+stockClass+'">'+stock+'</span>'
+          + '</button>';
+      });
+      matsHtml += '</div>';
+      matsHtml += '<div class="bf-actions"><button class="bf-tool" id="int-back">&larr; Town</button>';
+      if(state.ownedHouses.length>1){
+        matsHtml += '<button class="bf-tool" id="int-prev">Prev home</button><button class="bf-tool" id="int-next">Next home</button>';
+      }
+      matsHtml += '</div>';
+      matsHtml += '<p class="bf-instructions">Left-click an interior tile to place furniture. Right-click to remove. Comfort gives you daily points if you own a design business.</p>';
+      left.innerHTML = matsHtml;
+
+      left.querySelectorAll("[data-mat]").forEach(function(b){b.addEventListener("click", function(){selectedMat=b.getAttribute("data-mat");renderPanels();sfx("click")})});
+      document.getElementById("int-back").addEventListener("click", function(){state.view="town";renderPanels()});
+      var prev = document.getElementById("int-prev"), next = document.getElementById("int-next");
+      if(prev) prev.addEventListener("click", function(){state.interiorIndex = (state.interiorIndex-1+state.ownedHouses.length)%state.ownedHouses.length; renderPanels()});
+      if(next) next.addEventListener("click", function(){state.interiorIndex = (state.interiorIndex+1)%state.ownedHouses.length; renderPanels()});
+
+      var rh = '<h3>Comfort</h3>';
+      rh += '<p style="font-size:.85rem;line-height:1.55">'+house.style+' comfort score: <strong>'+houseComfort(house)+'</strong>.</p>';
+      rh += '<p style="font-size:.78rem;color:var(--color-text-muted)">Total household comfort: '+totalComfort()+'. Design business pays <strong>'+Math.floor(totalComfort()/5)+' pts/day</strong>'+(state.hasBusiness?'.':' (locked: open the business to earn).')+'</p>';
+      rh += '<h3 style="margin-top:.5rem">Log</h3><div class="bf-log">'+state.log.slice(0,5).map(function(e){return '<div class="bf-log__entry">'+e+'</div>'}).join('')+'</div>';
+      right.innerHTML = rh;
+    }
+
+    function renderPortfolioPanels(){
+      var left = document.getElementById("left-content");
+      var right = document.getElementById("right-content");
+      var lh = '<h3>Portfolio</h3>';
+      if(state.portfolio.length===0){
+        lh += '<p style="font-size:.85rem;color:var(--color-text-muted)">No builds completed yet.</p>';
+      } else {
+        lh += '<div class="bf-portfolio-grid">';
+        state.portfolio.slice().reverse().forEach(function(e){
+          var stars = "★".repeat(e.stars||1) + "☆".repeat(3-(e.stars||1));
+          lh += '<div class="bf-portfolio-item"><div class="bf-portfolio-item__title">'+e.style+'</div>'
+            + '<div class="bf-portfolio-item__stars">'+stars+'</div>'
+            + '<div style="color:var(--color-text-muted)">'+e.owner+' · '+e.cols+'×'+e.rows+' · '+e.season+'</div>'
+            + '<div style="color:var(--color-text-muted)">Reward '+e.reward+' pts in '+e.days+'d</div></div>';
+        });
+        lh += '</div>';
+      }
+      lh += '<div class="bf-actions"><button class="bf-tool" id="port-back">&larr; Back to Town</button></div>';
+      left.innerHTML = lh;
+      document.getElementById("port-back").addEventListener("click", function(){state.view="town";renderPanels()});
+
+      var rh = '<h3>Achievements</h3><div class="bf-achv-list">';
+      ACHIEVEMENTS.forEach(function(a){
+        var got = !!state.achievements[a.id];
+        rh += '<div class="bf-achv '+(got?'is-unlocked':'')+'"><span class="bf-achv__icon">'+a.icon+'</span><div><strong>'+a.name+'</strong><div style="font-size:.7rem;color:var(--color-text-muted)">'+a.desc+'</div></div></div>';
+      });
+      rh += '</div>';
+      right.innerHTML = rh;
+    }
+
+    function renderGameOverPanels(){
+      var left = document.getElementById("left-content");
+      var right = document.getElementById("right-content");
+      left.innerHTML = '<h3>Bankruptcy</h3><p style="font-size:.85rem;line-height:1.6">Your debt fell below -150 points. Mortgage one of your houses to settle, or reset.</p>';
+      var rh = '<h3>Choices</h3>';
+      if(state.ownedHouses.length>0){
+        rh += '<div class="bf-builds-list">';
+        state.ownedHouses.forEach(function(h,i){
+          rh += '<div class="bf-build-row"><div class="bf-build-row__name">'+h.style+'</div><div class="bf-build-row__meta">'+h.cols+'×'+h.rows+'</div><button class="btn btn--small" data-mortgage="'+i+'">Mortgage (+'+Math.round(h.reward*0.7)+' pts)</button></div>';
+        });
+        rh += '</div>';
+      } else {
+        rh += '<p style="font-size:.85rem">You have no houses to mortgage. Reset to try again.</p>';
+      }
+      rh += '<div class="bf-actions"><button class="bf-tool" id="reset-go">Reset Game</button></div>';
+      right.innerHTML = rh;
+      right.querySelectorAll("[data-mortgage]").forEach(function(b){
+        b.addEventListener("click", function(){
+          var i = +b.getAttribute("data-mortgage");
+          var h = state.ownedHouses[i];
+          var refund = Math.round(h.reward*0.7);
+          state.points += refund;
+          state.ownedHouses.splice(i,1);
+          toast("Mortgaged "+h.style+" (+"+refund+" pts).");
+          logMsg("Mortgaged "+h.style+" for "+refund+" pts.");
+          sfx("buy");
+          if(state.points >= -150) state.view = "town";
+          renderPanels();
+        });
+      });
+      document.getElementById("reset-go").addEventListener("click", function(){resetGame()});
+    }
+
+    function updateHud(){
+      var ptsEl = document.getElementById("hud-points");
+      ptsEl.textContent = state.points;
+      if(state.points < 0) ptsEl.classList.add("is-debt"); else ptsEl.classList.remove("is-debt");
+      document.getElementById("hud-day").textContent = "Day "+state.day;
+      document.getElementById("hud-season").textContent = SEASONS[state.season];
+      document.getElementById("hud-builds").textContent = state.builds.length+" / 3";
+      document.getElementById("hud-owned").textContent = state.ownedHouses.length;
+      var w = weatherById(state.weather);
+      var wEl = document.getElementById("hud-weather");
+      wEl.className = "bf-weather is-"+state.weather;
+      wEl.innerHTML = w.icon+" "+w.name;
+    }
+
+    /* ============================================================
+       DAY / WEATHER / DEBT
+       ============================================================ */
+    function rollWeather(){
+      /* 35% chance of weather event each new day; otherwise clear */
+      var current = state.weather;
+      if(state.weatherDays>1){
+        state.weatherDays--;
+        return;
+      }
+      if(Math.random() < 0.35){
+        var pool = ["sale","storm","cold","festival"];
+        var pick = pool[Math.floor(Math.random()*pool.length)];
+        state.weather = pick;
+        state.weatherDays = (pick==="sale"||pick==="cold") ? 2 : 1;
+        logMsg("Weather: "+weatherById(pick).name+" — "+weatherById(pick).desc);
+        toast(weatherById(pick).icon+" "+weatherById(pick).name);
+      } else {
+        state.weather = "clear";
+        state.weatherDays = 1;
+      }
+    }
+
+    function endDay(){
+      state.day++;
+      if((state.day-1) % SEASON_LEN === 0){
+        state.season = (state.season+1) % 4;
+        logMsg("Season changed to "+SEASONS[state.season]+".");
+        toast("Season: "+SEASONS[state.season]);
+      }
+      rollWeather();
+      /* business + comfort income */
+      if(state.hasBusiness){
+        var comfortPay = Math.floor(totalComfort()/5);
+        var bizBase = 8;
+        var pay = bizBase + comfortPay;
+        state.points += pay;
+        logMsg("Design business earned "+pay+" pts ("+bizBase+" base + "+comfortPay+" comfort).");
+      }
+      /* cancel stale builds */
+      var stale = [];
+      for(var i=state.builds.length-1;i>=0;i--){
+        var b = state.builds[i];
+        if(b.tutorial) continue;
+        var person = personById(b.personality);
+        if(state.day - b.lastTouched >= person.cancelDays){
+          stale.push(b.owner);
+          state.builds.splice(i,1);
+        }
+      }
+      if(stale.length){logMsg("Builds canceled for: "+stale.join(", ")+" (idle too long).");toast("Some builds were canceled.");sfx("bad")}
+      /* debt */
+      if(state.points < -150){state.view = "gameover";logMsg("You fell below -150 pts.");toast("Debt penalty! Mortgage a house.");sfx("bad")}
+      renderPanels();
+    }
+
+    /* ============================================================
+       SAVE / LOAD
+       ============================================================ */
+    function getSaveCode(){
+      var data = {
+        v: state.version, p: state.points, d: state.day, s: state.season,
+        c: state.hasCar?1:0, b: state.hasBusiness?1:0, td: state.tutorialDone?1:0,
+        oh: state.ownedHouses.map(serializeBuild), ab: state.builds.map(serializeBuild),
+        tp: state.townPlots, inv: state.inventory, port: state.portfolio.map(serializePortfolio),
+        ac: state.achievements, bp: state.brickPlaced, w: state.weather, wd: state.weatherDays
+      };
+      try{return btoa(unescape(encodeURIComponent(JSON.stringify(data))))} catch(e){return ""}
+    }
+    function serializeBuild(b){
+      var cells = [];
+      for(var r=0;r<b.rows;r++) for(var c=0;c<b.cols;c++){
+        var cell = b.cells[r][c];
+        if(cell.foundation||cell.wall||cell.opening||cell.roof||cell.decor){
+          cells.push([r,c,cell.foundation,cell.wall,cell.opening,cell.roof,cell.decor]);
+        }
+      }
+      var furn = [];
+      Object.keys(b.furniture||{}).forEach(function(k){furn.push([k, b.furniture[k]])});
+      return {id:b.id,o:b.owner,p:b.plotType,st:b.style,r:b.req,rw:b.reward,sd:b.startDay,ss:b.startSeason,lt:b.lastTouched,t:b.tutorial?1:0,d:b.done?1:0,per:b.personality,cells:cells,cols:b.cols,rows:b.rows,furn:furn};
+    }
+    function serializePortfolio(e){
+      var cells=[];
+      for(var r=0;r<e.cells.length;r++) for(var c=0;c<e.cells[r].length;c++){
+        var x = e.cells[r][c];
+        if(x.foundation||x.wall||x.opening||x.roof||x.decor) cells.push([r,c,x.foundation,x.wall,x.opening,x.roof,x.decor]);
+      }
+      return {o:e.owner,st:e.style,pl:e.plotType,d:e.days,se:e.season,sr:e.stars,r:e.reward,per:e.personality,c:cells,cols:e.cols,rows:e.rows,fd:e.finishedDay};
+    }
+    function deserializeBuild(o){
+      var p = plotById(o.p);
+      var b = {
+        id:o.id, owner:o.o, plotType:o.p, cols:o.cols||p.cols, rows:o.rows||p.rows, style:o.st,
+        req:o.r, reward:o.rw, startDay:o.sd, startSeason:o.ss, lastTouched:o.lt,
+        tutorial: !!o.t, done: !!o.d, personality:o.per||"standard",
+        cells: makeEmptyCells(o.rows||p.rows, o.cols||p.cols),
+        furniture: {}, history:[]
+      };
+      (o.cells||[]).forEach(function(c){b.cells[c[0]][c[1]] = { foundation:c[2]||null, wall:c[3]||null, opening:c[4]||null, roof:c[5]||null, decor:c[6]||null }});
+      (o.furn||[]).forEach(function(f){b.furniture[f[0]] = f[1]});
+      return b;
+    }
+    function deserializePortfolio(o){
+      var rows = o.rows, cols = o.cols;
+      var cells = makeEmptyCells(rows, cols);
+      (o.c||[]).forEach(function(c){cells[c[0]][c[1]] = {foundation:c[2]||null,wall:c[3]||null,opening:c[4]||null,roof:c[5]||null,decor:c[6]||null}});
+      return {owner:o.o,style:o.st,plotType:o.pl,days:o.d,season:o.se,stars:o.sr,reward:o.r,personality:o.per,cells:cells,cols:cols,rows:rows,finishedDay:o.fd};
+    }
+    function loadSaveCode(code){
+      try{
+        var data = JSON.parse(decodeURIComponent(escape(atob(code.trim()))));
+        state.points = data.p; state.day = data.d; state.season = data.s;
+        state.hasCar = !!data.c; state.hasBusiness = !!data.b; state.tutorialDone = !!data.td;
+        state.ownedHouses = (data.oh||[]).map(deserializeBuild);
+        state.builds = (data.ab||[]).map(deserializeBuild);
+        state.townPlots = data.tp||[];
+        state.inventory = data.inv||{};
+        state.portfolio = (data.port||[]).map(deserializePortfolio);
+        state.achievements = data.ac||{};
+        state.brickPlaced = data.bp||0;
+        state.weather = data.w||"clear";
+        state.weatherDays = data.wd||0;
+        refillTown();
+        state.view = "town";
+        renderPanels();
+        toast("Save loaded.");sfx("ok");
+      } catch(e){toast("Invalid save code.");sfx("bad")}
+    }
+
+    document.getElementById("save-btn").addEventListener("click", function(){
+      var code = getSaveCode();
+      document.getElementById("code-input").value = code;
+      if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(code);
+      toast("Save code copied.");sfx("click");
+    });
+    document.getElementById("load-btn").addEventListener("click", function(){
+      var c = document.getElementById("code-input").value.trim();
+      if(c) loadSaveCode(c);
+    });
+    document.getElementById("reset-btn").addEventListener("click", function(){
+      if(confirm("Reset the game? This wipes your progress.")) resetGame();
+    });
+    document.getElementById("btn-town").addEventListener("click", function(){
+      if(state.view==="title") return;
+      state.view = "town"; state.buildIndex = -1; state.interiorIndex = -1;
+      renderPanels();sfx("click");
+    });
+    document.getElementById("btn-portfolio").addEventListener("click", function(){
+      if(state.view==="title") return;
+      state.view = "portfolio"; renderPanels(); sfx("click");
+    });
+    document.getElementById("btn-next-day").addEventListener("click", function(){
+      if(state.view==="title") return;
+      endDay();sfx("click");
+    });
+
+    /* ============================================================
+       LIFECYCLE
+       ============================================================ */
+    function startGame(skipTutorial){
+      state.points = 100;
+      state.day = 1;
+      state.season = 0;
+      state.builds = [];
+      state.ownedHouses = [];
+      state.townPlots = [];
+      state.tutorialStep = 0;
+      state.tutorialDone = !!skipTutorial;
+      state.hasCar = false;
+      state.hasBusiness = false;
+      state.log = [];
+      state.inventory = starterInventory();
+      state.portfolio = [];
+      state.weather = "clear";
+      state.weatherDays = 1;
+      state.achievements = {};
+      state.brickPlaced = 0;
+      state.townScroll = 0;
+      refillTown();
+      if(!skipTutorial){
+        var tb = newBuild("small", true, "You");
+        tb.style = "Starter Home"; tb.reward = 60;
+        state.builds.push(tb);
+        state.buildIndex = 0;
+        state.view = "tutorial";
+        selectedMat = "wood-foundation";
+        logMsg("Tutorial started. Build your first house!");
+      } else {
+        state.view = "town";
+        logMsg("Skipped tutorial. Welcome to Foundation Heights.");
+        /* Give more starter stock if skipping */
+        addInventory("wood-foundation", 10);
+        addInventory("wood-wall", 8);
+        addInventory("wood-window", 2);
+        addInventory("straw-roof", 6);
+      }
+      renderPanels();
+    }
+    function resetGame(){state.view = "title"; renderPanels();}
+
+    /* Init */
+    selectedMat = "wood-foundation";
+    state.view = "title";
+    renderPanels();
+    requestAnimationFrame(render);
+
+  })();
+  </script>
+</body>
+</html>
