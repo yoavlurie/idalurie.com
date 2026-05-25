@@ -57,7 +57,8 @@
     .bf-modal h2{font-size:1.4rem;margin-bottom:.4rem;letter-spacing:-.02em}
     .bf-modal p{font-size:.9rem;line-height:1.6;color:var(--color-text-muted);margin-bottom:.6rem}
     .bf-modal__actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
-    .bf-tut-bubble{position:absolute;left:50%;bottom:1rem;transform:translateX(-50%);max-width:90%;background:#fff;color:#1a1a1a;border:2px solid #3b5fc0;border-radius:14px;padding:.75rem 1rem;font-size:.85rem;line-height:1.5;box-shadow:0 6px 24px rgba(0,0,0,.2);z-index:5;display:flex;align-items:center;gap:.75rem}
+    .bf-tut-bubble{display:none;align-items:center;gap:.75rem;background:#fff;color:#1a1a1a;border:2px solid #3b5fc0;border-radius:14px;padding:.75rem 1rem;font-size:.85rem;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.15)}
+    .bf-tut-bubble.is-show{display:flex}
     .bf-tut-bubble__icon{font-size:1.5rem;flex-shrink:0}
     .bf-tut-bubble__text{flex:1}
     .bf-tut-bubble__next{flex-shrink:0;padding:.35rem .8rem;background:#3b5fc0;color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:.78rem;cursor:pointer;font-weight:600}
@@ -156,11 +157,12 @@
             <canvas class="bf-canvas" id="cv" width="800" height="500" aria-label="Game stage"></canvas>
             <div class="bf-toast" id="toast"></div>
             <div class="bf-tooltip" id="tooltip"></div>
-            <div class="bf-tut-bubble" id="tut" style="display:none">
-              <div class="bf-tut-bubble__icon">&#x1F477;</div>
-              <div class="bf-tut-bubble__text" id="tut-text"></div>
-              <button class="bf-tut-bubble__next" id="tut-next" type="button">Next</button>
-            </div>
+          </div>
+
+          <div class="bf-tut-bubble" id="tut">
+            <div class="bf-tut-bubble__icon">&#x1F477;</div>
+            <div class="bf-tut-bubble__text" id="tut-text"></div>
+            <button class="bf-tut-bubble__next" id="tut-next" type="button">Next</button>
           </div>
 
           <div class="bf-panel" id="panel-area">
@@ -1157,6 +1159,366 @@
     }
 
     /* ============================================================
+       MINI PEOPLE — workers and townsfolk acting out the scene
+       ============================================================ */
+    /* drawWorker: chibi construction worker with a tool pose
+       cx, cy = position of FEET (where shadow goes).
+       pose: "hammer" | "saw" | "plank" | "wave" | "paint" | "idle"
+       opts: {bodyColor, hatColor, skinColor, phase, flip}              */
+    function drawWorker(cx, cy, scale, pose, opts){
+      scale = scale || 1;
+      opts = opts || {};
+      var s = scale;
+      var t = performance.now() * 0.001;
+      var bob = Math.sin(t * 3 + (opts.phase||0)) * 1.2 * s;
+      cy += bob;
+      var flip = opts.flip ? -1 : 1;
+
+      /* Shadow */
+      ctx.fillStyle = "rgba(0,0,0,0.28)";
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 1, 11*s, 3*s, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Boots */
+      ctx.fillStyle = "#2a1a10";
+      ctx.beginPath();
+      ctx.ellipse(cx - 4*s, cy - 1*s, 4*s, 2.5*s, 0, 0, Math.PI*2);
+      ctx.ellipse(cx + 4*s, cy - 1*s, 4*s, 2.5*s, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Pants */
+      ctx.fillStyle = opts.pantsColor || "#34589d";
+      ctx.fillRect(cx - 7*s, cy - 11*s, 6*s, 11*s);
+      ctx.fillRect(cx + 1*s, cy - 11*s, 6*s, 11*s);
+      ctx.fillStyle = darken(opts.pantsColor || "#34589d", 0.18);
+      ctx.fillRect(cx - 0.5*s, cy - 11*s, 1*s, 11*s);
+
+      /* Body / hi-vis vest */
+      var bodyColor = opts.bodyColor || "#e85a30";
+      ctx.fillStyle = bodyColor;
+      ctx.beginPath();
+      ctx.moveTo(cx - 9*s, cy - 22*s);
+      ctx.lineTo(cx + 9*s, cy - 22*s);
+      ctx.lineTo(cx + 8*s, cy - 10*s);
+      ctx.lineTo(cx - 8*s, cy - 10*s);
+      ctx.closePath();
+      ctx.fill();
+      /* Reflective stripe */
+      ctx.fillStyle = lighten(bodyColor, 0.45);
+      ctx.fillRect(cx - 9*s, cy - 16*s, 18*s, 1.6*s);
+      /* Vest shoulder shadow */
+      ctx.fillStyle = darken(bodyColor, 0.15);
+      ctx.fillRect(cx - 9*s, cy - 22*s, 18*s, 2*s);
+
+      /* Neck */
+      ctx.fillStyle = opts.skinColor || "#f4c8a0";
+      ctx.fillRect(cx - 2.5*s, cy - 24*s, 5*s, 3*s);
+
+      /* Head */
+      ctx.fillStyle = opts.skinColor || "#f4c8a0";
+      ctx.beginPath();
+      ctx.arc(cx, cy - 28*s, 6.5*s, 0, Math.PI*2);
+      ctx.fill();
+      ctx.strokeStyle = darken(opts.skinColor || "#f4c8a0", 0.2);
+      ctx.lineWidth = 0.6;
+      ctx.stroke();
+
+      /* Hard hat (brim + dome) */
+      var hatColor = opts.hatColor || "#ffd83a";
+      ctx.fillStyle = hatColor;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - 31*s, 9*s, 2.2*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle = hatColor;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 31*s, 7*s, Math.PI, 0);
+      ctx.fill();
+      ctx.fillStyle = darken(hatColor, 0.22);
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - 30*s, 9*s, 1*s, 0, 0, Math.PI);
+      ctx.fill();
+      /* Hat highlight */
+      ctx.fillStyle = lighten(hatColor, 0.4);
+      ctx.beginPath();
+      ctx.ellipse(cx - 2*s, cy - 33*s, 2*s, 1*s, -0.4, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Face */
+      ctx.fillStyle = "#1a1a1a";
+      ctx.beginPath();
+      ctx.arc(cx - 2.2*s, cy - 28*s, 0.9*s, 0, Math.PI*2);
+      ctx.arc(cx + 2.2*s, cy - 28*s, 0.9*s, 0, Math.PI*2);
+      ctx.fill();
+      /* Smile */
+      ctx.strokeStyle = "#1a1a1a";
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 26.5*s, 1.6*s, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      /* Cheek blush */
+      ctx.fillStyle = "rgba(255,120,120,0.45)";
+      ctx.beginPath();
+      ctx.arc(cx - 4.2*s, cy - 26.5*s, 1.1*s, 0, Math.PI*2);
+      ctx.arc(cx + 4.2*s, cy - 26.5*s, 1.1*s, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Tool / pose */
+      if(pose === "hammer"){
+        var swing = Math.sin(t * 7 + (opts.phase||0)) * 0.7;
+        ctx.save();
+        ctx.translate(cx + 7*s*flip, cy - 18*s);
+        ctx.scale(flip, 1);
+        ctx.rotate(-1.0 + swing);
+        /* arm */
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.fillRect(-1.5*s, -1.5*s, 8*s, 3*s);
+        /* hammer handle */
+        ctx.fillStyle = "#7a4a26";
+        ctx.fillRect(6*s, -1*s, 9*s, 2*s);
+        /* hammer head */
+        ctx.fillStyle = "#666";
+        ctx.fillRect(13*s, -3*s, 5*s, 6*s);
+        ctx.fillStyle = "#999";
+        ctx.fillRect(13*s, -3*s, 5*s, 1*s);
+        ctx.restore();
+      } else if(pose === "saw"){
+        var slide = Math.sin(t * 8 + (opts.phase||0)) * 3.5*s;
+        ctx.save();
+        ctx.translate(cx + 5*s*flip + slide*flip, cy - 14*s);
+        ctx.scale(flip, 1);
+        /* arm */
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.fillRect(-4*s, -1.5*s, 6*s, 3*s);
+        /* saw handle */
+        ctx.fillStyle = "#7a4a26";
+        ctx.fillRect(0, -2*s, 4*s, 5*s);
+        /* saw blade */
+        ctx.fillStyle = "#bcbcbc";
+        ctx.beginPath();
+        ctx.moveTo(4*s, -1*s);
+        ctx.lineTo(13*s, -1.5*s);
+        ctx.lineTo(13*s, 1.5*s);
+        ctx.lineTo(4*s, 2*s);
+        ctx.closePath();
+        ctx.fill();
+        /* teeth */
+        ctx.strokeStyle = "#555";
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        for(var k=0;k<6;k++){
+          ctx.moveTo(5*s + k*1.4*s, 2*s);
+          ctx.lineTo(5.7*s + k*1.4*s, 3.4*s);
+        }
+        ctx.stroke();
+        ctx.restore();
+      } else if(pose === "plank"){
+        /* Carrying plank above head */
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.fillRect(cx - 9*s, cy - 22*s, 3*s, 7*s);
+        ctx.fillRect(cx + 6*s, cy - 22*s, 3*s, 7*s);
+        ctx.fillStyle = "#bd8453";
+        ctx.fillRect(cx - 13*s, cy - 25*s, 26*s, 3.5*s);
+        ctx.strokeStyle = "rgba(0,0,0,0.35)";
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(cx - 13*s, cy - 25*s, 26*s, 3.5*s);
+        ctx.fillStyle = darken("#bd8453", 0.25);
+        ctx.fillRect(cx - 13*s, cy - 22*s, 26*s, 0.6*s);
+      } else if(pose === "wave"){
+        var wave = Math.sin(t * 4 + (opts.phase||0)) * 0.45;
+        ctx.save();
+        ctx.translate(cx + 7*s*flip, cy - 20*s);
+        ctx.scale(flip, 1);
+        ctx.rotate(-2.4 + wave);
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.fillRect(0, -1.5*s, 7*s, 3*s);
+        ctx.beginPath();
+        ctx.arc(7*s, 0, 2.4*s, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      } else if(pose === "paint"){
+        var stroke = Math.sin(t * 5 + (opts.phase||0)) * 0.3;
+        ctx.save();
+        ctx.translate(cx + 6*s*flip, cy - 18*s);
+        ctx.scale(flip, 1);
+        ctx.rotate(-0.6 + stroke);
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.fillRect(-1*s, -1.5*s, 8*s, 3*s);
+        ctx.fillStyle = "#7a4a26";
+        ctx.fillRect(7*s, -1*s, 5*s, 2*s);
+        /* brush bristles */
+        ctx.fillStyle = "#f5f5f5";
+        ctx.fillRect(11*s, -2.5*s, 3*s, 5*s);
+        /* paint drip */
+        ctx.fillStyle = "#3b5fc0";
+        ctx.fillRect(12*s, 2.5*s, 1*s, 2*s);
+        ctx.restore();
+      } else {
+        /* idle - hands by sides */
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.beginPath();
+        ctx.arc(cx - 9*s, cy - 12*s, 2*s, 0, Math.PI*2);
+        ctx.arc(cx + 9*s, cy - 12*s, 2*s, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    /* drawCivilian: townsperson — like a worker but no hat, has hair */
+    function drawCivilian(cx, cy, scale, opts){
+      scale = scale || 1;
+      opts = opts || {};
+      var s = scale;
+      var t = performance.now() * 0.001;
+      var bob = Math.sin(t * 2.4 + (opts.phase||0)) * 0.9*s;
+      cy += bob;
+      var flip = opts.flip ? -1 : 1;
+
+      /* Shadow */
+      ctx.fillStyle = "rgba(0,0,0,0.24)";
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 1, 10*s, 2.6*s, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Shoes */
+      ctx.fillStyle = "#1a1a1a";
+      ctx.beginPath();
+      ctx.ellipse(cx - 4*s, cy - 1*s, 3.5*s, 2*s, 0, 0, Math.PI*2);
+      ctx.ellipse(cx + 4*s, cy - 1*s, 3.5*s, 2*s, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Pants */
+      var pants = opts.pantsColor || "#3a4256";
+      ctx.fillStyle = pants;
+      ctx.fillRect(cx - 7*s, cy - 11*s, 14*s, 11*s);
+      ctx.fillStyle = darken(pants, 0.2);
+      ctx.fillRect(cx - 0.5*s, cy - 11*s, 1*s, 11*s);
+
+      /* Shirt */
+      var body = opts.bodyColor || "#a05dc0";
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(cx - 8*s, cy - 22*s);
+      ctx.lineTo(cx + 8*s, cy - 22*s);
+      ctx.lineTo(cx + 7*s, cy - 11*s);
+      ctx.lineTo(cx - 7*s, cy - 11*s);
+      ctx.closePath();
+      ctx.fill();
+      /* Shoulder shadow */
+      ctx.fillStyle = darken(body, 0.15);
+      ctx.fillRect(cx - 8*s, cy - 22*s, 16*s, 1.6*s);
+
+      /* Neck */
+      ctx.fillStyle = opts.skinColor || "#f4c8a0";
+      ctx.fillRect(cx - 2.5*s, cy - 24*s, 5*s, 3*s);
+
+      /* Hair back */
+      var hair = opts.hairColor || "#3a2a1a";
+      ctx.fillStyle = hair;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 27*s, 7.4*s, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Head */
+      ctx.fillStyle = opts.skinColor || "#f4c8a0";
+      ctx.beginPath();
+      ctx.arc(cx, cy - 28*s, 6.4*s, 0, Math.PI*2);
+      ctx.fill();
+
+      /* Hair bangs (cap top) */
+      ctx.fillStyle = hair;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 30*s, 6.4*s, Math.PI*0.95, Math.PI*1.95, false);
+      ctx.lineTo(cx, cy - 24*s);
+      ctx.closePath();
+      ctx.fill();
+
+      /* Eyes */
+      ctx.fillStyle = "#1a1a1a";
+      ctx.beginPath();
+      ctx.arc(cx - 2.2*s, cy - 28*s, 0.9*s, 0, Math.PI*2);
+      ctx.arc(cx + 2.2*s, cy - 28*s, 0.9*s, 0, Math.PI*2);
+      ctx.fill();
+      /* Smile */
+      ctx.strokeStyle = "#1a1a1a";
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.arc(cx, cy - 26.5*s, 1.6*s, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      /* Blush */
+      ctx.fillStyle = "rgba(255,120,140,0.45)";
+      ctx.beginPath();
+      ctx.arc(cx - 4.2*s, cy - 26.5*s, 1.1*s, 0, Math.PI*2);
+      ctx.arc(cx + 4.2*s, cy - 26.5*s, 1.1*s, 0, Math.PI*2);
+      ctx.fill();
+
+      if(opts.wave){
+        var wave = Math.sin(t * 4 + (opts.phase||0)) * 0.45;
+        ctx.save();
+        ctx.translate(cx + 7*s*flip, cy - 20*s);
+        ctx.scale(flip, 1);
+        ctx.rotate(-2.4 + wave);
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.fillRect(0, -1.5*s, 7*s, 3*s);
+        ctx.beginPath();
+        ctx.arc(7*s, 0, 2.4*s, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      } else {
+        /* hands by sides */
+        ctx.fillStyle = opts.skinColor || "#f4c8a0";
+        ctx.beginPath();
+        ctx.arc(cx - 8.5*s, cy - 12*s, 1.8*s, 0, Math.PI*2);
+        ctx.arc(cx + 8.5*s, cy - 12*s, 1.8*s, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    /* drawDog: tiny companion for charm */
+    function drawDog(cx, cy, scale, opts){
+      scale = scale || 1;
+      opts = opts || {};
+      var s = scale;
+      var t = performance.now() * 0.001;
+      var tail = Math.sin(t * 8 + (opts.phase||0)) * 0.6;
+      var flip = opts.flip ? -1 : 1;
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.scale(flip, 1);
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
+      ctx.beginPath(); ctx.ellipse(0, 1, 9*s, 2*s, 0, 0, Math.PI*2); ctx.fill();
+      /* body */
+      ctx.fillStyle = opts.color || "#c79a3e";
+      ctx.beginPath();
+      ctx.ellipse(0, -4*s, 7*s, 4*s, 0, 0, Math.PI*2);
+      ctx.fill();
+      /* legs */
+      ctx.fillRect(-5*s, -3*s, 2*s, 3*s);
+      ctx.fillRect(-1*s, -3*s, 2*s, 3*s);
+      ctx.fillRect(3*s, -3*s, 2*s, 3*s);
+      /* head */
+      ctx.fillStyle = opts.color || "#c79a3e";
+      ctx.beginPath();
+      ctx.arc(7*s, -6*s, 3.5*s, 0, Math.PI*2);
+      ctx.fill();
+      /* ear */
+      ctx.fillStyle = darken(opts.color || "#c79a3e", 0.2);
+      ctx.beginPath();
+      ctx.moveTo(7*s, -10*s); ctx.lineTo(5*s, -7*s); ctx.lineTo(9*s, -7*s);
+      ctx.closePath(); ctx.fill();
+      /* tail */
+      ctx.strokeStyle = opts.color || "#c79a3e";
+      ctx.lineWidth = 2*s;
+      ctx.beginPath();
+      ctx.moveTo(-6*s, -5*s);
+      ctx.quadraticCurveTo(-9*s, -8*s - tail*3, -10*s, -10*s - tail*4);
+      ctx.stroke();
+      /* eye */
+      ctx.fillStyle = "#1a1a1a";
+      ctx.beginPath(); ctx.arc(8*s, -6*s, 0.6*s, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    /* ============================================================
        TOWN drawing
        ============================================================ */
     var hotspots = [];
@@ -1244,6 +1606,44 @@
       ctx.fillText("Foundation Heights — "+SEASONS[state.season]+" · "+weatherById(state.weather).name, 22, 26);
 
       if(state.hasCar){drawCar(40, h*0.78);}
+
+      /* Pedestrians along the sidewalk */
+      var t = performance.now();
+      var walkers = [
+        {speed:0.020, body:"#a05dc0", pants:"#3a3a4a", hair:"#3a2a1a", y:h*0.815, dir:1, phase:0.0},
+        {speed:0.014, body:"#3b8a3b", pants:"#2a3a26", hair:"#daa520", y:h*0.83,  dir:-1, phase:1.4},
+        {speed:0.018, body:"#e85a30", pants:"#3a3a3a", hair:"#1a1a1a", y:h*0.82,  dir:1, phase:2.6}
+      ];
+      walkers.forEach(function(p, i){
+        var span = w + 80;
+        var pos = (t*p.speed + i*180) % span - 40;
+        var x = p.dir>0 ? pos : (w - pos);
+        drawCivilian(x, p.y, 0.72, {bodyColor:p.body, pantsColor:p.pants, hairColor:p.hair, phase:p.phase, wave:false, flip:p.dir<0});
+      });
+
+      /* Townfolk waving from in front of plot slots */
+      var slotW = 130;
+      var startX = 30;
+      var topY = h*0.42;
+      for(var si=0; si<hotspots.length; si++){
+        var hs = hotspots[si];
+        if(!hs.content) continue;
+        var cx = hs.rect[0] + hs.rect[2]/2;
+        var cy = hs.rect[1] + hs.rect[3] + 6;
+        if(hs.content.type==="empty"){
+          /* The neighbor waits next to their lot, waving */
+          drawCivilian(cx, cy, 0.6,
+            {bodyColor:"#3b5fc0", pantsColor:"#2a3a52", hairColor:"#7a4a26", wave:true, phase:si*0.8});
+        } else if(hs.content.type==="owned"){
+          /* The homeowner */
+          drawCivilian(cx, cy, 0.6,
+            {bodyColor:"#5da84e", pantsColor:"#3a3a3a", hairColor:"#3a2a1a", wave:true, phase:si*0.5});
+        } else if(hs.content.type==="active"){
+          /* A worker on site */
+          drawWorker(cx, cy, 0.55, "hammer",
+            {bodyColor:"#e85a30", hatColor:"#ffd83a", phase:si*0.6});
+        }
+      }
     }
 
     function currentGroundColor(){
@@ -1348,6 +1748,21 @@
       buildGeom = makeIsoGeom(0, 40, w, h-50, b.cols, b.rows);
       drawPlotIsoG(buildGeom, b);
 
+      /* Mini people acting out the build (south foreground, drawn in front) */
+      var workerScale = Math.max(0.6, buildGeom.scale * 0.85);
+      var wPos1 = isoPt(buildGeom, b.cols*0.25, b.rows + 0.5);
+      var wPos2 = isoPt(buildGeom, b.cols*0.75, b.rows + 0.35);
+      var wPos3 = isoPt(buildGeom, b.cols*0.5,  b.rows + 0.85);
+      drawWorker(wPos1.x, wPos1.y + buildGeom.TH/2, workerScale, "hammer",
+        {bodyColor:"#e85a30", hatColor:"#ffd83a", phase:0});
+      drawWorker(wPos2.x, wPos2.y + buildGeom.TH/2, workerScale, "saw",
+        {bodyColor:"#3b8a3b", hatColor:"#ff7a3a", pantsColor:"#2a3a52", phase:1.7, flip:true});
+      drawWorker(wPos3.x, wPos3.y + buildGeom.TH/2, workerScale*0.9, "plank",
+        {bodyColor:"#3b5fc0", hatColor:"#ffd83a", phase:0.7});
+      /* Dog for charm */
+      var dogPos = isoPt(buildGeom, b.cols*0.15, b.rows + 0.95);
+      drawDog(dogPos.x, dogPos.y + buildGeom.TH/2, workerScale*0.9, {color:"#c79a3e", phase:1.1});
+
       ctx.fillStyle="rgba(0,0,0,0.55)";
       ctx.fillRect(10,10, 380, 28);
       ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.textBaseline="middle";
@@ -1424,6 +1839,18 @@
         drawFurniture(lx, ly, s, house.furniture[k]);
       });
 
+      /* Homeowner standing in the room */
+      var homeX = px + (iCols * s)/2;
+      var homeY = py + iRows*s - s*0.15;
+      drawCivilian(homeX, homeY, Math.max(0.7, s*0.014),
+        {bodyColor:"#a05dc0", pantsColor:"#3a3a4a", hairColor:"#3a2a1a", wave:true, phase:0.3});
+
+      /* Optional dog companion if you have multiple homes */
+      if(state.ownedHouses.length>1){
+        drawDog(homeX + s*0.7, homeY + s*0.05, Math.max(0.6, s*0.012),
+          {color:"#c79a3e", phase:0.5});
+      }
+
       /* title */
       ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(10,10,360,28);
       ctx.fillStyle="#fff";ctx.font="bold 13px sans-serif";ctx.textBaseline="middle";
@@ -1491,6 +1918,13 @@
       ctx.fillRect(0, h*0.6, w, h*0.4);
       var sample = sampleHero();
       drawPlotIso(w*0.25, h*0.05, sample.cols, sample.rows, {w:w*0.5, h:h*0.6}, sample);
+
+      /* Mini crew animating the title scene */
+      drawWorker(w*0.25, h*0.72, 1.3, "hammer", {bodyColor:"#e85a30", hatColor:"#ffd83a", phase:0});
+      drawWorker(w*0.75, h*0.72, 1.3, "saw", {bodyColor:"#3b8a3b", hatColor:"#ff7a3a", phase:1.5, flip:true});
+      drawCivilian(w*0.5, h*0.74, 1.1, {bodyColor:"#a05dc0", pantsColor:"#3a3a4a", hairColor:"#daa520", wave:true, phase:0.6});
+      drawDog(w*0.4, h*0.74, 1.2, {color:"#c79a3e", phase:1.0});
+
       ctx.fillStyle="rgba(0,0,0,0.55)";
       ctx.fillRect(0, h*0.78, w, 60);
       ctx.fillStyle="#fff";
@@ -1989,7 +2423,7 @@
       if(b.tutorial){
         state.tutorialDone = true;
         state.tutorialStep = TUTORIAL_STEPS.length;
-        document.getElementById("tut").style.display="none";
+        document.getElementById("tut").classList.remove("is-show");
         /* gift a small restock for first real build */
         addInventory("wood-foundation", 16);
         addInventory("wood-wall", 12);
@@ -2048,11 +2482,11 @@
       if(step.check(b)){state.tutorialStep++; showTutorialBubble()}
     }
     function showTutorialBubble(){
-      if(state.view!=="tutorial"){document.getElementById("tut").style.display="none";return}
+      if(state.view!=="tutorial"){document.getElementById("tut").classList.remove("is-show");return}
       var step = TUTORIAL_STEPS[state.tutorialStep];
       var tut = document.getElementById("tut");
-      if(!step){tut.style.display="none";return}
-      tut.style.display="flex";
+      if(!step){tut.classList.remove("is-show");return}
+      tut.classList.add("is-show");
       document.getElementById("tut-text").textContent = step.text;
     }
     document.getElementById("tut-next").addEventListener("click", function(){
