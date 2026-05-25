@@ -610,13 +610,72 @@
       function iso(c, r){return isoPt(g, c, r)}
 
       /* Grass surround (outset diamond) */
-      var pad = 0.45;
+      var pad = 0.55;
       var gN = iso(-pad, -pad), gE = iso(cols+pad, -pad), gS = iso(cols+pad, rows+pad), gW = iso(-pad, rows+pad);
-      ctx.fillStyle = "#79a04b";
+      var grassGrad = ctx.createLinearGradient(gN.x, gN.y, gS.x, gS.y);
+      grassGrad.addColorStop(0, "#a4cc6a");
+      grassGrad.addColorStop(1, "#7aa64a");
+      ctx.fillStyle = grassGrad;
       ctx.beginPath();
       ctx.moveTo(gN.x, gN.y); ctx.lineTo(gE.x, gE.y); ctx.lineTo(gS.x, gS.y); ctx.lineTo(gW.x, gW.y);
       ctx.closePath(); ctx.fill();
       ctx.strokeStyle = "#5a8a3a"; ctx.lineWidth = 1; ctx.stroke();
+
+      /* Daisies + tufts scattered along the grass border (deterministic by cell coords) */
+      var daisySpots = [
+        {c:-0.32, r:-0.32, col:"#fff"},
+        {c:cols+0.3, r:-0.25, col:"#fff"},
+        {c:-0.28, r:rows*0.35, col:"#ffd54a"},
+        {c:cols+0.32, r:rows*0.55, col:"#fff"},
+        {c:cols*0.3, r:rows+0.32, col:"#fff"},
+        {c:cols*0.7, r:rows+0.28, col:"#ffd54a"},
+        {c:-0.30, r:rows+0.25, col:"#fff"},
+        {c:cols+0.28, r:rows+0.34, col:"#fff"},
+        {c:cols*0.5, r:-0.34, col:"#ffd54a"}
+      ];
+      daisySpots.forEach(function(d){
+        var pos = iso(d.c, d.r);
+        var dx = pos.x, dy = pos.y + TH/2;
+        var pet = Math.max(1.2, TW*0.05);
+        /* stem */
+        ctx.strokeStyle = "#3a7a3a";
+        ctx.lineWidth = Math.max(0.7, TW*0.02);
+        ctx.beginPath(); ctx.moveTo(dx, dy + pet*1.4); ctx.lineTo(dx, dy - pet*0.4); ctx.stroke();
+        /* petals */
+        ctx.fillStyle = d.col;
+        for(var pi=0;pi<5;pi++){
+          var ang = (pi/5) * Math.PI*2 - Math.PI/2;
+          var px2 = dx + Math.cos(ang)*pet*0.9;
+          var py2 = dy + Math.sin(ang)*pet*0.45;
+          ctx.beginPath();
+          ctx.ellipse(px2, py2, pet*0.6, pet*0.35, ang, 0, Math.PI*2);
+          ctx.fill();
+        }
+        /* center */
+        ctx.fillStyle = "#ffb13a";
+        ctx.beginPath(); ctx.arc(dx, dy, pet*0.45, 0, Math.PI*2); ctx.fill();
+      });
+      /* Tiny grass tufts (V shapes) */
+      var tufts = [
+        {c:-0.18, r:rows*0.15},
+        {c:cols*0.15, r:-0.18},
+        {c:cols+0.15, r:rows*0.2},
+        {c:cols*0.85, r:rows+0.15},
+        {c:cols*0.4, r:rows+0.4},
+        {c:-0.15, r:rows*0.7}
+      ];
+      ctx.strokeStyle = "#3a7a3a";
+      ctx.lineWidth = Math.max(0.6, TW*0.02);
+      tufts.forEach(function(t){
+        var pos = iso(t.c, t.r);
+        var dx = pos.x, dy = pos.y + TH/2;
+        var h = Math.max(2, TH*0.3);
+        ctx.beginPath();
+        ctx.moveTo(dx - h*0.4, dy + 2); ctx.lineTo(dx, dy - h);
+        ctx.moveTo(dx, dy + 1); ctx.lineTo(dx + h*0.3, dy - h*0.8);
+        ctx.moveTo(dx + h*0.4, dy + 2); ctx.lineTo(dx + h*0.6, dy - h*0.6);
+        ctx.stroke();
+      });
 
       /* Dirt plot */
       var dN = iso(0, 0), dE = iso(cols, 0), dS = iso(cols, rows), dW = iso(0, rows);
@@ -882,36 +941,89 @@
       var which = openingFace(build, r, c);
       var face = faceQuad(p, TW, TH, WH, which);
       if(m.cat === "door"){
-        var u1 = 0.22, u2 = 0.78, v1 = 0.03, v2 = 0.92;
+        var u1 = 0.22, u2 = 0.78, v1 = 0.05, v2 = 0.88;
         var p1=faceLerp(face,u1,v1), p2=faceLerp(face,u2,v1), p3=faceLerp(face,u2,v2), p4=faceLerp(face,u1,v2);
+        /* door frame (slightly larger, outline only) */
+        ctx.fillStyle = darken(m.color, 0.4);
+        var fu1=u1-0.03, fu2=u2+0.03, fv1=v1-0.02, fv2=v2+0.04;
+        var f1=faceLerp(face,fu1,fv1), f2=faceLerp(face,fu2,fv1), f3=faceLerp(face,fu2,fv2), f4=faceLerp(face,fu1,fv2);
+        ctx.beginPath();
+        ctx.moveTo(f1.x, f1.y); ctx.lineTo(f2.x, f2.y); ctx.lineTo(f3.x, f3.y); ctx.lineTo(f4.x, f4.y);
+        ctx.closePath(); ctx.fill();
+        /* door */
         ctx.fillStyle = m.color2;
         ctx.beginPath();
         ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
         ctx.closePath(); ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 1; ctx.stroke();
         /* inner panel */
-        var iu1=u1+0.08, iu2=u2-0.08, iv1=v1+0.08, iv2=v2-0.08;
+        var iu1=u1+0.10, iu2=u2-0.10, iv1=v1+0.10, iv2=v2-0.10;
         var q1=faceLerp(face,iu1,iv1), q2=faceLerp(face,iu2,iv1), q3=faceLerp(face,iu2,iv2), q4=faceLerp(face,iu1,iv2);
         ctx.fillStyle = m.color;
         ctx.beginPath();
         ctx.moveTo(q1.x, q1.y); ctx.lineTo(q2.x, q2.y); ctx.lineTo(q3.x, q3.y); ctx.lineTo(q4.x, q4.y);
         ctx.closePath(); ctx.fill();
-        /* panel divider */
-        ctx.strokeStyle = "rgba(0,0,0,0.35)";
-        var mid1 = faceLerp(face, iu1, 0.5), mid2 = faceLerp(face, iu2, 0.5);
+        /* heart-shaped peephole near the top */
+        var heartCenter = faceLerp(face, (iu1+iu2)/2, iv1+0.10);
+        drawTinyHeart(heartCenter.x, heartCenter.y, Math.max(1.6, TW*0.06), "#ffd54a");
+        /* horizontal panel line lower down */
+        ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 0.8;
+        var mid1 = faceLerp(face, iu1, 0.55), mid2 = faceLerp(face, iu2, 0.55);
         ctx.beginPath(); ctx.moveTo(mid1.x, mid1.y); ctx.lineTo(mid2.x, mid2.y); ctx.stroke();
         /* knob */
-        var knob = faceLerp(face, u2-0.14, 0.55);
+        var knob = faceLerp(face, u2-0.16, 0.6);
         ctx.fillStyle = "#ffd54a";
-        ctx.beginPath(); ctx.arc(knob.x, knob.y, Math.max(1.5, TW*0.04), 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = "rgba(0,0,0,0.4)"; ctx.lineWidth = 0.5; ctx.stroke();
+        ctx.beginPath(); ctx.arc(knob.x, knob.y, Math.max(1.5, TW*0.05), 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.45)"; ctx.lineWidth = 0.5; ctx.stroke();
+        /* welcome step */
+        var st1=faceLerp(face,u1-0.10,v2+0.02), st2=faceLerp(face,u2+0.10,v2+0.02), st3=faceLerp(face,u2+0.10,v2+0.10), st4=faceLerp(face,u1-0.10,v2+0.10);
+        ctx.fillStyle = "#b6ad9b";
+        ctx.beginPath();
+        ctx.moveTo(st1.x, st1.y); ctx.lineTo(st2.x, st2.y); ctx.lineTo(st3.x, st3.y); ctx.lineTo(st4.x, st4.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(0,0,0,0.3)"; ctx.lineWidth = 0.6; ctx.stroke();
+        /* doormat on the step */
+        var mt1=faceLerp(face,u1-0.04,v2+0.035), mt2=faceLerp(face,u2+0.04,v2+0.035), mt3=faceLerp(face,u2+0.04,v2+0.08), mt4=faceLerp(face,u1-0.04,v2+0.08);
+        ctx.fillStyle = "#7a4a26";
+        ctx.beginPath();
+        ctx.moveTo(mt1.x, mt1.y); ctx.lineTo(mt2.x, mt2.y); ctx.lineTo(mt3.x, mt3.y); ctx.lineTo(mt4.x, mt4.y);
+        ctx.closePath(); ctx.fill();
       } else if(m.cat === "window"){
-        var u1 = 0.18, u2 = 0.82, v1 = 0.22, v2 = 0.78;
-        /* sill below window */
-        var sl1 = faceLerp(face, u1-0.04, v2);
-        var sl2 = faceLerp(face, u2+0.04, v2);
-        var sl3 = faceLerp(face, u2+0.04, v2+0.06);
-        var sl4 = faceLerp(face, u1-0.04, v2+0.06);
+        var u1 = 0.22, u2 = 0.78, v1 = 0.20, v2 = 0.70;
+        var shutterColor = "#3b8a3b";
+        if(m.id==="big-window") shutterColor = "#d65030";
+        else if(m.id==="glass-wall") shutterColor = "#3b5fc0";
+        /* left shutter */
+        var sh1=faceLerp(face,u1-0.13,v1-0.03), sh2=faceLerp(face,u1-0.02,v1-0.03), sh3=faceLerp(face,u1-0.02,v2+0.03), sh4=faceLerp(face,u1-0.13,v2+0.03);
+        ctx.fillStyle = shutterColor;
+        ctx.beginPath();
+        ctx.moveTo(sh1.x, sh1.y); ctx.lineTo(sh2.x, sh2.y); ctx.lineTo(sh3.x, sh3.y); ctx.lineTo(sh4.x, sh4.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = darken(shutterColor, 0.4); ctx.lineWidth = 0.6; ctx.stroke();
+        /* louver detail */
+        for(var sk=1;sk<=3;sk++){
+          var sv = v1-0.03 + (v2+0.03 - (v1-0.03)) * sk/4;
+          var la = faceLerp(face, u1-0.12, sv);
+          var lb = faceLerp(face, u1-0.03, sv);
+          ctx.beginPath(); ctx.moveTo(la.x, la.y); ctx.lineTo(lb.x, lb.y); ctx.stroke();
+        }
+        /* right shutter */
+        var sr1=faceLerp(face,u2+0.02,v1-0.03), sr2=faceLerp(face,u2+0.13,v1-0.03), sr3=faceLerp(face,u2+0.13,v2+0.03), sr4=faceLerp(face,u2+0.02,v2+0.03);
+        ctx.fillStyle = shutterColor;
+        ctx.beginPath();
+        ctx.moveTo(sr1.x, sr1.y); ctx.lineTo(sr2.x, sr2.y); ctx.lineTo(sr3.x, sr3.y); ctx.lineTo(sr4.x, sr4.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = darken(shutterColor, 0.4); ctx.lineWidth = 0.6; ctx.stroke();
+        for(var sk=1;sk<=3;sk++){
+          var sv = v1-0.03 + (v2+0.03 - (v1-0.03)) * sk/4;
+          var la = faceLerp(face, u2+0.03, sv);
+          var lb = faceLerp(face, u2+0.12, sv);
+          ctx.beginPath(); ctx.moveTo(la.x, la.y); ctx.lineTo(lb.x, lb.y); ctx.stroke();
+        }
+        /* sill */
+        var sl1 = faceLerp(face, u1-0.06, v2);
+        var sl2 = faceLerp(face, u2+0.06, v2);
+        var sl3 = faceLerp(face, u2+0.06, v2+0.07);
+        var sl4 = faceLerp(face, u1-0.06, v2+0.07);
         ctx.fillStyle = "#3a2a1a";
         ctx.beginPath();
         ctx.moveTo(sl1.x, sl1.y); ctx.lineTo(sl2.x, sl2.y); ctx.lineTo(sl3.x, sl3.y); ctx.lineTo(sl4.x, sl4.y);
@@ -923,10 +1035,10 @@
         ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.lineTo(p3.x, p3.y); ctx.lineTo(p4.x, p4.y);
         ctx.closePath(); ctx.fill();
         /* glass */
-        var iu1=u1+0.04, iu2=u2-0.04, iv1=v1+0.06, iv2=v2-0.06;
+        var iu1=u1+0.05, iu2=u2-0.05, iv1=v1+0.07, iv2=v2-0.07;
         var q1=faceLerp(face,iu1,iv1), q2=faceLerp(face,iu2,iv1), q3=faceLerp(face,iu2,iv2), q4=faceLerp(face,iu1,iv2);
         var grad = ctx.createLinearGradient(q1.x, q1.y, q3.x, q3.y);
-        grad.addColorStop(0, m.color2);
+        grad.addColorStop(0, lighten(m.color2, 0.15));
         grad.addColorStop(1, m.color);
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -941,7 +1053,7 @@
         var c2 = faceLerp(face, iu1, vm), d = faceLerp(face, iu2, vm);
         ctx.beginPath(); ctx.moveTo(c2.x, c2.y); ctx.lineTo(d.x, d.y); ctx.stroke();
         /* highlight glint */
-        ctx.fillStyle = "rgba(255,255,255,0.35)";
+        ctx.fillStyle = "rgba(255,255,255,0.5)";
         var h1 = faceLerp(face, iu1+0.03, iv1+0.06);
         var h2 = faceLerp(face, iu1+0.22, iv1+0.06);
         var h3 = faceLerp(face, iu1+0.22, iv1+0.18);
@@ -949,7 +1061,42 @@
         ctx.beginPath();
         ctx.moveTo(h1.x, h1.y); ctx.lineTo(h2.x, h2.y); ctx.lineTo(h3.x, h3.y); ctx.lineTo(h4.x, h4.y);
         ctx.closePath(); ctx.fill();
+        /* window box with little flowers below the sill */
+        var wb1 = faceLerp(face, u1-0.06, v2+0.07);
+        var wb2 = faceLerp(face, u2+0.06, v2+0.07);
+        var wb3 = faceLerp(face, u2+0.06, v2+0.22);
+        var wb4 = faceLerp(face, u1-0.06, v2+0.22);
+        ctx.fillStyle = "#7a4a26";
+        ctx.beginPath();
+        ctx.moveTo(wb1.x, wb1.y); ctx.lineTo(wb2.x, wb2.y); ctx.lineTo(wb3.x, wb3.y); ctx.lineTo(wb4.x, wb4.y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = darken("#7a4a26", 0.3); ctx.lineWidth = 0.6; ctx.stroke();
+        /* greenery */
+        var greens = faceLerp(face, (u1+u2)/2, v2+0.09);
+        ctx.fillStyle = "#56a456";
+        ctx.beginPath(); ctx.arc(greens.x, greens.y, Math.max(1.5, TW*0.07), 0, Math.PI*2); ctx.fill();
+        /* flowers */
+        var flowerCols = ["#ff69b4","#ffd54a","#ff7a3a","#bb6dff","#56b056"];
+        for(var fi=0; fi<4; fi++){
+          var fu = u1 + (fi+0.5)/4 * (u2-u1);
+          var fpos = faceLerp(face, fu, v2+0.06);
+          ctx.fillStyle = flowerCols[fi%flowerCols.length];
+          ctx.beginPath(); ctx.arc(fpos.x, fpos.y, Math.max(1, TW*0.04), 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
+          ctx.beginPath(); ctx.arc(fpos.x-TW*0.015, fpos.y-TW*0.015, Math.max(0.4, TW*0.015), 0, Math.PI*2); ctx.fill();
+        }
       }
+    }
+
+    /* Tiny heart shape — used for door peephole, smoke puffs, etc. */
+    function drawTinyHeart(x, y, size, color){
+      ctx.fillStyle = color || "#ff5a8a";
+      ctx.beginPath();
+      ctx.arc(x - size*0.4, y - size*0.15, size*0.45, Math.PI, 2*Math.PI);
+      ctx.arc(x + size*0.4, y - size*0.15, size*0.45, Math.PI, 2*Math.PI);
+      ctx.lineTo(x, y + size*0.85);
+      ctx.closePath();
+      ctx.fill();
     }
 
     /* Pyramid hip roof over the build's wall bounding box */
@@ -972,7 +1119,7 @@
       if(!hasRoof) return;
       var rmat = matById(roofMatId);
 
-      var oh = 0.28;
+      var oh = 0.38;
       var nC = iso(minC - oh, minR - oh);
       var eC = iso(maxC + 1 + oh, minR - oh);
       var sC = iso(maxC + 1 + oh, maxR + 1 + oh);
@@ -982,7 +1129,8 @@
       var width = maxC - minC + 1;
       var height = maxR - minR + 1;
       var minDim = Math.min(width, height);
-      var peakRise = Math.max(TH*1.4, minDim * TH * 0.75);
+      /* Steeper, storybook pitch */
+      var peakRise = Math.max(TH*2.0, minDim * TH * 1.05);
       var center = { x: (nC.x + sC.x)/2, y: (nC.y + sC.y)/2 - peakRise };
 
       /* Back faces first (drawn behind) */
@@ -991,6 +1139,10 @@
       /* Front faces (visible) */
       drawRoofTriangle(eC, sC, center, darken(rmat.color, 0.05), rmat, true);
       drawRoofTriangle(sC, wC, center, rmat.color, rmat, true);
+
+      /* Scalloped eaves on front faces (cute hanging shingles) */
+      drawScallop(eC, sC, lighten(rmat.color, 0.1), TW);
+      drawScallop(sC, wC, lighten(rmat.color, 0.05), TW);
 
       /* Ridge lines */
       ctx.strokeStyle = darken(rmat.color, 0.4);
@@ -1003,8 +1155,76 @@
       /* Cap at peak */
       ctx.fillStyle = darken(rmat.color, 0.45);
       ctx.beginPath();
-      ctx.arc(center.x, center.y, Math.max(1.5, TW*0.05), 0, Math.PI*2);
+      ctx.arc(center.x, center.y, Math.max(1.8, TW*0.06), 0, Math.PI*2);
       ctx.fill();
+
+      /* Flagpole + waving pennant flag at the peak */
+      var poleH = Math.max(14, TH*1.6);
+      ctx.strokeStyle = "#5a3a26";
+      ctx.lineWidth = Math.max(1.2, TW*0.04);
+      ctx.beginPath();
+      ctx.moveTo(center.x, center.y);
+      ctx.lineTo(center.x, center.y - poleH);
+      ctx.stroke();
+      /* Pole tip */
+      ctx.fillStyle = "#ffd54a";
+      ctx.beginPath();
+      ctx.arc(center.x, center.y - poleH, Math.max(1.2, TW*0.05), 0, Math.PI*2);
+      ctx.fill();
+      /* Flag waving */
+      var wave = Math.sin(performance.now()*0.004)*0.25;
+      var flagW = Math.max(10, TW*0.5);
+      var flagH = Math.max(6, TH*0.7);
+      var fx = center.x;
+      var fy = center.y - poleH + 2;
+      ctx.fillStyle = "#e85a30";
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(fx + flagW + wave*flagW*0.5, fy + flagH*0.25);
+      ctx.lineTo(fx + flagW*0.7, fy + flagH*0.5);
+      ctx.lineTo(fx + flagW + wave*flagW*0.4, fy + flagH*0.85);
+      ctx.lineTo(fx, fy + flagH);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = darken("#e85a30", 0.3); ctx.lineWidth = 0.6; ctx.stroke();
+      /* Tiny heart on the flag */
+      drawTinyHeart(fx + flagW*0.35, fy + flagH*0.5, Math.max(2.5, TW*0.08), "#fff");
+    }
+
+    /* Scalloped/wavy eave decoration along front roof edges */
+    function drawScallop(c1, c2, color, TW){
+      var n = 6;
+      var bump = Math.max(2, TW*0.08);
+      ctx.fillStyle = color;
+      var dx = (c2.x - c1.x) / n;
+      var dy = (c2.y - c1.y) / n;
+      for(var i=0;i<n;i++){
+        var sx = c1.x + dx*i;
+        var sy = c1.y + dy*i;
+        var ex = c1.x + dx*(i+1);
+        var ey = c1.y + dy*(i+1);
+        var mx = (sx+ex)/2, my = (sy+ey)/2 + bump;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(mx, my, ex, ey);
+        ctx.lineTo(ex, ey - bump*0.1);
+        ctx.lineTo(sx, sy - bump*0.1);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.strokeStyle = darken(color, 0.3);
+      ctx.lineWidth = 0.6;
+      for(var i=0;i<n;i++){
+        var sx = c1.x + dx*i;
+        var sy = c1.y + dy*i;
+        var ex = c1.x + dx*(i+1);
+        var ey = c1.y + dy*(i+1);
+        var mx = (sx+ex)/2, my = (sy+ey)/2 + bump;
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.quadraticCurveTo(mx, my, ex, ey);
+        ctx.stroke();
+      }
     }
 
     function drawRoofTriangle(c1, c2, peak, color, rmat, withTexture){
@@ -1109,15 +1329,14 @@
           ctx.moveTo(lB.x, lB.y - H*t); ctx.lineTo(bB.x, bB.y - H*t);
           ctx.stroke();
         }
-        /* Smoke puffs */
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        /* Heart-shaped smoke puffs rising */
         var smX = (tT.x + rT.x + bT.x + lT.x)/4;
         var smY = (tT.y + rT.y + bT.y + lT.y)/4;
-        ctx.beginPath(); ctx.arc(smX, smY - 6, 5, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.7)";
-        ctx.beginPath(); ctx.arc(smX + 4, smY - 13, 6, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.beginPath(); ctx.arc(smX - 3, smY - 22, 7, 0, Math.PI*2); ctx.fill();
+        var sway = Math.sin(performance.now()*0.002)*2;
+        ctx.fillStyle = "rgba(255,240,245,0.92)";
+        drawTinyHeart(smX + sway, smY - 8, 6, "rgba(255,240,245,0.92)");
+        drawTinyHeart(smX + sway*1.5 + 3, smY - 18, 7, "rgba(255,225,235,0.78)");
+        drawTinyHeart(smX + sway*2 - 4, smY - 30, 9, "rgba(255,200,220,0.62)");
       }
     }
 
@@ -1539,8 +1758,40 @@
           ctx.beginPath();ctx.arc(sx, sy, 1.5+(i%3)*0.4, 0, Math.PI*2);ctx.fill();
         }
       } else {
-        ctx.fillStyle = state.season===2 ? "#ffb368" : "#fff2a8";
-        ctx.beginPath();ctx.arc(w-70, 60, 26, 0, Math.PI*2);ctx.fill();
+        var sunX = w-70, sunY = 60;
+        var sunBob = Math.sin(performance.now()*0.0015)*2;
+        var rayPhase = performance.now()*0.001;
+        /* Rays */
+        ctx.strokeStyle = state.season===2 ? "#ff9a48" : "#ffd54a";
+        ctx.lineWidth = 2.5;
+        for(var ri=0;ri<8;ri++){
+          var ang = (ri/8)*Math.PI*2 + rayPhase*0.2;
+          var inner = 30 + Math.sin(rayPhase*2 + ri)*2;
+          var outer = inner + 9;
+          ctx.beginPath();
+          ctx.moveTo(sunX + Math.cos(ang)*inner, sunY+sunBob + Math.sin(ang)*inner);
+          ctx.lineTo(sunX + Math.cos(ang)*outer, sunY+sunBob + Math.sin(ang)*outer);
+          ctx.stroke();
+        }
+        /* Sun body */
+        var sunGrad = ctx.createRadialGradient(sunX-6, sunY+sunBob-6, 4, sunX, sunY+sunBob, 26);
+        sunGrad.addColorStop(0, "#fff8c8");
+        sunGrad.addColorStop(1, state.season===2 ? "#ffb368" : "#ffd54a");
+        ctx.fillStyle = sunGrad;
+        ctx.beginPath();ctx.arc(sunX, sunY+sunBob, 26, 0, Math.PI*2);ctx.fill();
+        ctx.strokeStyle = "rgba(255,170,40,0.7)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        /* Face */
+        ctx.fillStyle = "#3a2a1a";
+        ctx.beginPath(); ctx.arc(sunX-7, sunY+sunBob-3, 2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(sunX+7, sunY+sunBob-3, 2, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "#3a2a1a"; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(sunX, sunY+sunBob+2, 6, 0.2, Math.PI-0.2); ctx.stroke();
+        /* Cheeks */
+        ctx.fillStyle = "rgba(255,120,140,0.5)";
+        ctx.beginPath(); ctx.arc(sunX-11, sunY+sunBob+2, 2.5, 0, Math.PI*2);
+        ctx.arc(sunX+11, sunY+sunBob+2, 2.5, 0, Math.PI*2); ctx.fill();
       }
       /* Storm rain overlay */
       if(state.weather==="storm"){
